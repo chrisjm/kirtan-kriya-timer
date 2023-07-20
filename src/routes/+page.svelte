@@ -1,5 +1,11 @@
-<h1 class="text-3xl font-bold">Welcome to SvelteKit</h1>
-<p class="mt-3">
-	Visit <a class="underline hover:text-red-500" href="https://kit.svelte.dev">kit.svelte.dev</a> to read
-	the documentation
-</p>
+<script>
+  let title = "Kirtan Kriya Timer";
+  import TimerList from '$lib/components/TimerList.svelte';
+  import TimerDisplay from '$lib/components/TimerDisplay.svelte';
+</script>
+
+<main>
+  <h1>{title}</h1>
+  <TimerDisplay />
+  <TimerList />
+</main>
