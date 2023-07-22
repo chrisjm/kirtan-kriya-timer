@@ -74,7 +74,7 @@
 		await Tone.start();
 		synth = new Tone.PolySynth().toDestination();
 		loop = new Tone.Loop((time) => {
-			synth.triggerAttackRelease(notes[noteIndex].pitch, '8n', time);
+			synth.triggerAttackRelease(notes[noteIndex].pitch, '4n', time);
 			mantra = notes[noteIndex].mantra;
 			noteIndex += 1;
 			if (noteIndex >= notes.length) {
