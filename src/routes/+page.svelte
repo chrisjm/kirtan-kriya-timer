@@ -4,8 +4,8 @@
   import TimerDisplay from '$lib/components/TimerDisplay.svelte';
 </script>
 
-<main>
-  <h1>{title}</h1>
+<main class="mx-auto max-w-xl my-3">
+  <h1 class="text-4xl text-center font-sans-serif font-medium">{title}</h1>
   <TimerDisplay />
   <TimerList />
 </main>
