@@ -66,7 +66,7 @@
 	}
 
 	function startTones() {
-		Tone.Transport.bpm.value = 60;
+		Tone.Transport.bpm.value = 66;
 		Tone.Transport.start();
 	}
 
