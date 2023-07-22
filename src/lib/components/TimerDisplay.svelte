@@ -105,6 +105,7 @@
 
 	function nextTimer() {
 		timerIndex += 1;
+		duration = durations[timerIndex];
 		timerEndTime = Date.now() + duration;
 		updateCountdown();
 	}
