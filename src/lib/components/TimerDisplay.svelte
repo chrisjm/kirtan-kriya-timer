@@ -50,13 +50,17 @@
 	}
 
 	function nextTimer() {
-		clearTimeout(timerId);
-		timerIndex += 1;
-		if (timerIndex < durations.length) {
-			duration = durations[timerIndex];
-			timerEndTime = Date.now() + duration;
-			updateCountdown();
+		if (!timerIndex) {
+			timerIndex = 0;
 		} else {
+			timerIndex += 1;
+		}
+
+		duration = durations[timerIndex];
+		timerEndTime = Date.now() + duration;
+		updateCountdown();
+
+		if (timerIndex > durations.length) {
 			pauseTimers();
 		}
 	}
@@ -90,7 +94,7 @@
 	async function startTimers() {
 		isRunning = true;
 		if (!duration) {
-			duration = durations[0];
+			duration = durations[timerIndex];
 		}
 		timerEndTime = Date.now() + timeRemaining;
 		updateCountdown();
@@ -104,6 +108,20 @@
 		clearTimeout(timerId);
 		isRunning = false;
 		Tone.Transport.pause();
+	}
+
+	function formatTime(milliseconds: number) {
+		const seconds = millisecondsToSeconds(milliseconds);
+		return `${padWithZeroes(secondsToMinutes(seconds))}:${padWithZeroes(seconds % 60)}`;
+	}
+
+	function handleTimerSelect(index: number) {
+		if (isRunning) {
+			pauseTimers();
+		}
+		timerIndex = index;
+		duration = durations[index];
+		timeRemaining = duration;
 	}
 </script>
 
@@ -122,10 +140,28 @@
 		{/if}
 		<button class="btn btn-error" on:click={resetTimers} disabled={isRunning}>RESET</button>
 	</div>
-	{#if isRunning}
-		<p class="my-3">
-			<span class="">{actionLabel}:</span>
-			<span class="bold">{mantra}</span>
-		</p>
-	{/if}
+	<p class="font-bold my-3">
+		<span class="">{timerIndex + 1}. {formatTime(durations[timerIndex])} {actionLabel}</span>
+		{#if mantra}
+			<span class="font-medium">: {mantra}</span>
+		{/if}
+	</p>
+</section>
+<section class="text-center my-6">
+	<ul>
+		{#each durations as duration, index (index)}
+			<li class="cursor-pointer">
+				<button
+					on:click={() => handleTimerSelect(index)}
+					on:keypress={() => handleTimerSelect(index)}
+				>
+					{index + 1}.
+					<span class="underline hover:text-primary">
+						{formatTime(duration)}
+						{actions[index]} mantra
+					</span>
+				</button>
+			</li>
+		{/each}
+	</ul>
 </section>
