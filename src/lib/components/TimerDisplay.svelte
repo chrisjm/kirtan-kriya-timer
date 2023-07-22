@@ -7,7 +7,19 @@
 	const secondsToMinutes: (seconds: number) => number = (seconds) => Math.floor(seconds / 60);
 	const padWithZeroes: (number: number) => string = (number) => number.toString().padStart(2, '0');
 
+	// TODO: This should be more general and probably linear interpolation?
+	const volumeToDecibels = (value: number, r1 = [0, 100], r2 = [-48, 0]) => {
+		return Math.floor(((value - r1[0]) * (r2[1] - r2[0])) / (r1[1] - r1[0]) + r2[0]);
+	};
+
 	let isRunning = false;
+	let actions = [
+		'Out-loud chant',
+		'Whisper chant',
+		'Mental chant',
+		'Whisper chant',
+		'Out-lout chant'
+	];
 	let durations = [
 		minutesToMilliseconds(2),
 		minutesToMilliseconds(2),
@@ -15,54 +27,95 @@
 		minutesToMilliseconds(2),
 		minutesToMilliseconds(2)
 	];
-	let actions = ['Chanting', 'Whispering', 'Thinking', 'Whispering', 'Chanting'];
-	let duration: number | undefined;
+	let volumes = [90, 60, 30, 60, 90];
 	let timerEndTime: number;
 	let timerId: NodeJS.Timer;
 	let timerIndex = 0;
 	let actionLabel = '';
 	let timeRemaining: number = durations[0];
 	let mantra = '';
-	let synth: Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>;
+	let synth: Tone.Synth<Tone.SynthOptions> | Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>;
 	let loop: Tone.Loop<Tone.LoopOptions>;
+	let vol: Tone.Volume;
 	let noteIndex = 0;
 	let soundLoaded = false;
+	let soundEnabled = false;
 
-	$: actionLabel = actions[timerIndex];
+	$: actionLabel = actions[timerIndex ?? 0];
+	$: volumeValue = volumes[timerIndex];
+	$: duration = durations[timerIndex];
+
+	$: {
+		if (synth && volumeValue) {
+			synth.volume.value = volumeToDecibels(+volumeValue);
+		}
+	}
+
+	$: {
+		if (soundEnabled) {
+			if (vol) {
+				vol.mute = false;
+			}
+		} else {
+			if (vol) {
+				vol.mute = true;
+			}
+		}
+	}
 
 	const notes = [
-		{ pitch: 'E4', mantra: 'Sa' },
-		{ pitch: 'D4', mantra: 'Ta' },
-		{ pitch: 'C4', mantra: 'Na' },
-		{ pitch: 'D4', mantra: 'Ma' }
+		{ pitch: 'E3', mantra: 'Sa' },
+		{ pitch: 'D3', mantra: 'Ta' },
+		{ pitch: 'C3', mantra: 'Na' },
+		{ pitch: 'D3', mantra: 'Ma' }
 	];
 
 	function updateCountdown() {
 		clearTimeout(timerId);
-		let now = Date.now();
-		timeRemaining = timerEndTime - now;
 
-		if (timeRemaining > 0) {
-			timerId = setTimeout(updateCountdown, 1000);
-		} else {
-			nextTimer();
+		if (isRunning) {
+			let now = Date.now();
+			timeRemaining = timerEndTime - now;
+
+			if (timeRemaining > 0) {
+				timerId = setTimeout(updateCountdown, 1000);
+			} else {
+				if (timerIndex >= durations.length - 1) {
+					pauseTimers();
+					resetTimers();
+				} else {
+					nextTimer();
+				}
+			}
 		}
 	}
 
-	function nextTimer() {
-		if (!timerIndex) {
-			timerIndex = 0;
-		} else {
-			timerIndex += 1;
+	async function startTimers() {
+		isRunning = true;
+		timerEndTime = Date.now() + timeRemaining;
+		updateCountdown();
+		if (!soundLoaded) {
+			initializeSound();
 		}
+		startTones();
+	}
 
-		duration = durations[timerIndex];
+	function nextTimer() {
+		timerIndex += 1;
 		timerEndTime = Date.now() + duration;
 		updateCountdown();
+	}
 
-		if (timerIndex > durations.length) {
-			pauseTimers();
-		}
+	function resetTimers() {
+		timerIndex = 0;
+		noteIndex = 0;
+		timeRemaining = durations[timerIndex];
+	}
+
+	function pauseTimers() {
+		clearTimeout(timerId);
+		isRunning = false;
+		Tone.Transport.pause();
 	}
 
 	function startTones() {
@@ -72,7 +125,8 @@
 
 	async function initializeSound() {
 		await Tone.start();
-		synth = new Tone.PolySynth().toDestination();
+		vol = new Tone.Volume(volumeToDecibels(volumeValue)).toDestination();
+		synth = new Tone.Synth().connect(vol);
 		loop = new Tone.Loop((time) => {
 			synth.triggerAttackRelease(notes[noteIndex].pitch, '4n', time);
 			mantra = notes[noteIndex].mantra;
@@ -82,32 +136,6 @@
 			}
 		}).start(0);
 		soundLoaded = true;
-	}
-
-	function resetTimers() {
-		timerIndex = 0;
-		noteIndex = 0;
-		duration = durations[timerIndex];
-		timeRemaining = duration;
-	}
-
-	async function startTimers() {
-		isRunning = true;
-		if (!duration) {
-			duration = durations[timerIndex];
-		}
-		timerEndTime = Date.now() + timeRemaining;
-		updateCountdown();
-		if (!soundLoaded) {
-			initializeSound();
-		}
-		startTones();
-	}
-
-	function pauseTimers() {
-		clearTimeout(timerId);
-		isRunning = false;
-		Tone.Transport.pause();
 	}
 
 	function formatTime(milliseconds: number) {
@@ -120,7 +148,6 @@
 			pauseTimers();
 		}
 		timerIndex = index;
-		duration = durations[index];
 		timeRemaining = duration;
 	}
 </script>
@@ -158,10 +185,24 @@
 					{index + 1}.
 					<span class="underline hover:text-primary">
 						{formatTime(duration)}
-						{actions[index]} mantra
+						{actions[index]}
 					</span>
 				</button>
 			</li>
 		{/each}
 	</ul>
+</section>
+<section class="my-6">
+	<div class="flex gap-3">
+		<label class="cursor-pointer label flex flex-col gap-2">
+			<span class="label-text">Sound</span>
+			<input type="checkbox" class="toggle toggle-primary" bind:checked={soundEnabled} />
+		</label>
+		{#if soundEnabled}
+			<label class="label flex-1 flex flex-col gap-2">
+				<span class="label-text">Volume: {volumeValue ?? ''}</span>
+				<input type="range" min="0" max="100" bind:value={volumeValue} class="range" step="1" />
+			</label>
+		{/if}
+	</div>
 </section>
