@@ -40,6 +40,7 @@
 	let noteIndex = 0;
 	let soundLoaded = false;
 	let soundEnabled = false;
+	let soundPlaying = false;
 
 	$: actionLabel = actions[timerIndex ?? 0];
 	$: volumeValue = volumes[timerIndex];
@@ -97,7 +98,9 @@
 		if (!soundLoaded) {
 			initializeSound();
 		}
-		startTones();
+		if (soundEnabled) {
+			startTones();
+		}
 	}
 
 	function nextTimer() {
@@ -119,6 +122,7 @@
 	}
 
 	function startTones() {
+		soundPlaying = true;
 		Tone.Transport.bpm.value = 66;
 		Tone.Transport.start();
 	}
@@ -148,7 +152,14 @@
 			pauseTimers();
 		}
 		timerIndex = index;
-		timeRemaining = duration;
+		timeRemaining = durations[index];
+	}
+
+	function handleSoundToggle() {
+		if (!soundPlaying) {
+			startTones();
+		}
+		soundPlaying = !soundPlaying;
 	}
 </script>
 
@@ -196,7 +207,12 @@
 	<div class="flex gap-3">
 		<label class="cursor-pointer label flex flex-col gap-2">
 			<span class="label-text">Sound</span>
-			<input type="checkbox" class="toggle toggle-primary" bind:checked={soundEnabled} />
+			<input
+				type="checkbox"
+				class="toggle toggle-primary"
+				bind:checked={soundEnabled}
+				on:click={handleSoundToggle}
+			/>
 		</label>
 		{#if soundEnabled}
 			<label class="label flex-1 flex flex-col gap-2">
