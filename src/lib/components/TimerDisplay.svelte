@@ -7,6 +7,11 @@
 	const secondsToMinutes: (seconds: number) => number = (seconds) => Math.floor(seconds / 60);
 	const padWithZeroes: (number: number) => string = (number) => number.toString().padStart(2, '0');
 
+	function formatTime(milliseconds: number) {
+		const seconds = millisecondsToSeconds(milliseconds);
+		return `${padWithZeroes(secondsToMinutes(seconds))}:${padWithZeroes(seconds % 60)}`;
+	}
+
 	// TODO: This should be more general and probably linear interpolation?
 	const volumeToDecibels = (value: number, r1 = [0, 100], r2 = [-48, 0]) => {
 		return Math.floor(((value - r1[0]) * (r2[1] - r2[0])) / (r1[1] - r1[0]) + r2[0]);
@@ -31,7 +36,6 @@
 	let timerEndTime: number;
 	let timerId: NodeJS.Timer;
 	let timerIndex = 0;
-	let actionLabel = '';
 	let timeRemaining: number = durations[0];
 	let mantra = '';
 	let synth: Tone.Synth<Tone.SynthOptions> | Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>;
@@ -41,10 +45,10 @@
 	let soundLoaded = false;
 	let soundEnabled = false;
 	let soundPlaying = false;
+	let duration = durations[timerIndex];
 
-	$: actionLabel = actions[timerIndex ?? 0];
+	$: actionLabel = actions[timerIndex];
 	$: volumeValue = volumes[timerIndex];
-	$: duration = durations[timerIndex];
 
 	$: {
 		if (synth && volumeValue) {
@@ -53,7 +57,8 @@
 	}
 
 	$: {
-		if (soundEnabled) {
+		if (soundPlaying && soundEnabled) {
+			startTones();
 			if (vol) {
 				vol.mute = false;
 			}
@@ -74,33 +79,29 @@
 	function updateCountdown() {
 		clearTimeout(timerId);
 
-		if (isRunning) {
-			let now = Date.now();
-			timeRemaining = timerEndTime - now;
+		let now = Date.now();
+		timeRemaining = timerEndTime - now;
 
-			if (timeRemaining > 0) {
-				timerId = setTimeout(updateCountdown, 1000);
+		if (timeRemaining > 0) {
+			timerId = setTimeout(updateCountdown, 1000);
+		} else {
+			if (timerIndex >= durations.length - 1) {
+				pauseTimers();
+				resetTimers();
 			} else {
-				if (timerIndex >= durations.length - 1) {
-					pauseTimers();
-					resetTimers();
-				} else {
-					nextTimer();
-				}
+				nextTimer();
 			}
 		}
 	}
 
 	async function startTimers() {
 		isRunning = true;
+		soundPlaying = true;
 		timerEndTime = Date.now() + timeRemaining;
-		updateCountdown();
 		if (!soundLoaded) {
 			initializeSound();
 		}
-		if (soundEnabled) {
-			startTones();
-		}
+		updateCountdown();
 	}
 
 	function nextTimer() {
@@ -114,6 +115,7 @@
 		timerIndex = 0;
 		noteIndex = 0;
 		timeRemaining = durations[timerIndex];
+		stopTones();
 	}
 
 	function pauseTimers() {
@@ -122,12 +124,18 @@
 		Tone.Transport.pause();
 	}
 
+	function stopTones() {
+		soundPlaying = false;
+		Tone.Transport.stop();
+	}
+
 	function startTones() {
 		soundPlaying = true;
-		Tone.Transport.bpm.value = 66;
+		Tone.Transport.bpm.value = 60;
 		Tone.Transport.start();
 	}
 
+	// Must be initialized via user interation because of the audio
 	async function initializeSound() {
 		await Tone.start();
 		vol = new Tone.Volume(volumeToDecibels(volumeValue)).toDestination();
@@ -143,11 +151,6 @@
 		soundLoaded = true;
 	}
 
-	function formatTime(milliseconds: number) {
-		const seconds = millisecondsToSeconds(milliseconds);
-		return `${padWithZeroes(secondsToMinutes(seconds))}:${padWithZeroes(seconds % 60)}`;
-	}
-
 	function handleTimerSelect(index: number) {
 		if (isRunning) {
 			pauseTimers();
@@ -157,10 +160,8 @@
 	}
 
 	function handleSoundToggle() {
-		if (!soundPlaying) {
-			startTones();
-		}
 		soundPlaying = !soundPlaying;
+		console.log(soundPlaying);
 	}
 </script>
 
@@ -217,37 +218,41 @@
 		</label>
 		{#if soundEnabled}
 			<label class="label flex-1 flex flex-col gap-2">
-				<span class="label-text">Volume: {volumeValue ?? ''}</span>
+				<span class="label-text">Volume: {volumeValue}</span>
 				<input type="range" min="0" max="100" bind:value={volumeValue} class="range" step="1" />
 			</label>
 		{/if}
 	</div>
 </section>
 <section class="my-6">
-	<h2 class="text-lg font-medium">Resources</h2>
-	<ul class="list-disc pl-6">
-		<li>
-			<a
-				href="https://alzheimersprevention.org/research/kirtan-kriya-yoga-exercise/"
-				class="link link-primary"
-				target="_blank"
-				>Practice The 12-Minute Yoga Meditation Exercise - Alzheimer's Research and Prevention
-				Foundation</a
-			>
-		</li>
-		<li>
-			<a
-				href="https://www.ijhsr.org/IJHSR_Vol.11_Issue.1_Jan2021/IJHSR35.pdf"
-				class="link link-primary"
-				target="_blank"
-				>A Review on Therapeutic Effect of Kirtan Kriya Yoga - International Journal of Health
-				Sciences and Research</a
-			>
-		</li>
-		<li>
-			<a href="https://youtu.be/hHFMxq2wjR4" class="link link-primary" target="_blank"
-				>Dr. Dharma on the Healing Power of Kirtan Kriya - YouTube</a
-			>
-		</li>
-	</ul>
+	<div tabindex="-1" class="collapse collapse-arrow border border-base-300 bg-base-200">
+		<div class="collapse-title text-xl font-medium">Resources</div>
+		<div class="collapse-content">
+			<ul class="list-disc pl-6">
+				<li>
+					<a
+						href="https://alzheimersprevention.org/research/kirtan-kriya-yoga-exercise/"
+						class="link link-primary"
+						target="_blank"
+						>Practice The 12-Minute Yoga Meditation Exercise - Alzheimer's Research and Prevention
+						Foundation</a
+					>
+				</li>
+				<li>
+					<a
+						href="https://www.ijhsr.org/IJHSR_Vol.11_Issue.1_Jan2021/IJHSR35.pdf"
+						class="link link-primary"
+						target="_blank"
+						>A Review on Therapeutic Effect of Kirtan Kriya Yoga - International Journal of Health
+						Sciences and Research</a
+					>
+				</li>
+				<li>
+					<a href="https://youtu.be/hHFMxq2wjR4" class="link link-primary" target="_blank"
+						>Dr. Dharma on the Healing Power of Kirtan Kriya - YouTube</a
+					>
+				</li>
+			</ul>
+		</div>
+	</div>
 </section>
