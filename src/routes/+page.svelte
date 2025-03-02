@@ -9,3 +9,7 @@
   <TimerDisplay />
   <TimerList />
 </main>
+
+<footer class="text-center mt-8 mb-4 text-gray-600">
+  <p>Check out our <a href="https://meditation.wanderingleafstudios.com/" class="text-blue-600 hover:text-blue-800 underline">Meditation Timer</a></p>
+</footer>
