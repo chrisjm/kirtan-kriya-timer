@@ -1,229 +1,277 @@
 <script lang="ts">
-	// import * as Tone from 'tone';
+	import { timerStore } from '$lib/stores/timerStore';
+	import { soundManager } from '$lib/utils/soundUtils';
+	import ProgressIndicator from './ProgressIndicator.svelte';
 
-	const millisecondsToSeconds: (milliseconds: number) => number = (milliseconds) =>
-		Math.round(milliseconds / 1000);
-	const minutesToMilliseconds: (minutes: number) => number = (minutes) => minutes * 60 * 1000;
-	const secondsToMinutes: (seconds: number) => number = (seconds) => Math.floor(seconds / 60);
-	const padWithZeroes: (number: number) => string = (number) => number.toString().padStart(2, '0');
+	// Time formatting utilities
+	const millisecondsToSeconds = (milliseconds: number): number => Math.round(milliseconds / 1000);
+	const secondsToMinutes = (seconds: number): number => Math.floor(seconds / 60);
+	const padWithZeroes = (number: number): string => number.toString().padStart(2, '0');
 
-	function formatTime(milliseconds: number) {
+	function formatTime(milliseconds: number): string {
 		const seconds = millisecondsToSeconds(milliseconds);
 		return `${padWithZeroes(secondsToMinutes(seconds))}:${padWithZeroes(seconds % 60)}`;
 	}
 
-	// TODO: This should be more general and probably linear interpolation?
-	// const volumeToDecibels = (value: number, r1 = [0, 100], r2 = [-48, 0]) => {
-	// 	return Math.floor(((value - r1[0]) * (r2[1] - r2[0])) / (r1[1] - r1[0]) + r2[0]);
-	// };
-
-	let isRunning = false;
-	let actions = [
-		'Out-loud chant',
-		'Whisper chant',
-		'Mental chant',
-		'Whisper chant',
-		'Out-lout chant'
-	];
-	let durations = [
-		minutesToMilliseconds(2),
-		minutesToMilliseconds(2),
-		minutesToMilliseconds(4),
-		minutesToMilliseconds(2),
-		minutesToMilliseconds(2)
-	];
-	// let volumes = [90, 60, 30, 60, 90];
+	// Timer state
 	let timerEndTime: number;
 	let timerId: NodeJS.Timer;
-	let timerIndex = 0;
-	let timeRemaining: number = durations[0];
 	let mantra = '';
-	// let synth: Tone.Synth<Tone.SynthOptions> | Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>;
-	// let loop: Tone.Loop<Tone.LoopOptions>;
-	// let vol: Tone.Volume;
-	// let noteIndex = 0;
-	// let soundLoaded = false;
-	// let soundEnabled = false;
-	// let soundPlaying = false;
-	let duration = durations[timerIndex];
+	let soundInitialized = false;
 
-	$: actionLabel = actions[timerIndex];
-	// $: volumeValue = volumes[timerIndex];
+	// Reactive values from the store
+	$: isRunning = $timerStore.isRunning;
+	$: timeRemaining = $timerStore.timeRemaining;
+	$: currentPhaseIndex = $timerStore.currentPhaseIndex;
+	$: currentPhase = $timerStore.phases[currentPhaseIndex];
+	$: actionLabel = currentPhase.action;
+	$: soundEnabled = $timerStore.soundEnabled;
+	$: volumeLevel = $timerStore.volumeLevel;
 
-	// $: {
-	// 	if (synth && volumeValue) {
-	// 		synth.volume.value = volumeToDecibels(+volumeValue);
-	// 	}
-	// }
+	// Update sound manager volume when store volume changes
+	$: if (soundInitialized && soundManager) {
+		soundManager.volumeLevel = volumeLevel;
+	}
 
-	// $: {
-	// 	if (soundPlaying && soundEnabled) {
-	// 		startTones();
-	// 		if (vol) {
-	// 			vol.mute = false;
-	// 		}
-	// 	} else {
-	// 		if (vol) {
-	// 			vol.mute = true;
-	// 		}
-	// 	}
-	// }
+	// Manage sound based on timer state
+	$: if (soundInitialized && isRunning && soundEnabled) {
+		soundManager.start();
+	} else if (soundInitialized) {
+		soundManager.stop();
+	}
 
-	// const notes = [
-	// 	{ pitch: 'E3', mantra: 'Sa' },
-	// 	{ pitch: 'D3', mantra: 'Ta' },
-	// 	{ pitch: 'C3', mantra: 'Na' },
-	// 	{ pitch: 'D3', mantra: 'Ma' }
-	// ];
+	// Get mantra from sound manager
+	$: if (soundInitialized && soundManager) {
+		mantra = soundManager.currentMantra;
+	}
 
+	// Timer countdown function
 	function updateCountdown() {
 		clearTimeout(timerId);
 
 		let now = Date.now();
-		timeRemaining = timerEndTime - now;
+		const newTimeRemaining = timerEndTime - now;
 
-		if (timeRemaining > 0) {
+		// Update the store with the new time
+		timerStore.updateTimeRemaining(Math.max(0, newTimeRemaining));
+
+		if (newTimeRemaining > 0) {
 			timerId = setTimeout(updateCountdown, 1000);
 		} else {
-			if (timerIndex >= durations.length - 1) {
-				pauseTimers();
-				resetTimers();
+			// Play notification sound at phase change
+			if (soundInitialized && soundEnabled) {
+				soundManager.playNotification();
+			}
+
+			// Check if we're at the last phase
+			if (currentPhaseIndex >= $timerStore.phases.length - 1) {
+				pauseTimer();
+				resetTimer();
 			} else {
-				nextTimer();
+				nextPhase();
 			}
 		}
 	}
 
-	async function startTimers() {
-		isRunning = true;
-		// soundPlaying = true;
+	// Timer control functions
+	async function startTimer() {
+		// Initialize sound if not already done
+		if (!soundInitialized && soundEnabled) {
+			try {
+				await soundManager.initialize();
+				soundInitialized = true;
+			} catch (error) {
+				console.error('Failed to initialize sound:', error);
+			}
+		}
+
+		// Update the store
+		timerStore.startTimer();
+
+		// Set the end time and start countdown
 		timerEndTime = Date.now() + timeRemaining;
-		// if (!soundLoaded) {
-		// 	initializeSound();
-		// }
 		updateCountdown();
 	}
 
-	function nextTimer() {
-		timerIndex += 1;
-		duration = durations[timerIndex];
-		timerEndTime = Date.now() + duration;
+	function nextPhase() {
+		timerStore.nextPhase();
+		timerEndTime = Date.now() + $timerStore.timeRemaining;
 		updateCountdown();
 	}
 
-	function resetTimers() {
-		timerIndex = 0;
-		// noteIndex = 0;
-		timeRemaining = durations[timerIndex];
-		// stopTones();
-	}
-
-	function pauseTimers() {
+	function resetTimer() {
 		clearTimeout(timerId);
-		isRunning = false;
-		// Tone.Transport.pause();
+		timerStore.resetTimer();
 	}
 
-	// function stopTones() {
-	// 	soundPlaying = false;
-	// 	Tone.Transport.stop();
-	// }
-
-	// function startTones() {
-	// 	soundPlaying = true;
-	// 	Tone.Transport.bpm.value = 60;
-	// 	Tone.Transport.start();
-	// }
-
-	// Must be initialized via user interation because of the audio
-	// async function initializeSound() {
-	// 	await Tone.start();
-	// 	vol = new Tone.Volume(volumeToDecibels(volumeValue)).toDestination();
-	// 	synth = new Tone.Synth().connect(vol);
-	// 	loop = new Tone.Loop((time) => {
-	// 		synth.triggerAttackRelease(notes[noteIndex].pitch, '4n', time);
-	// 		mantra = notes[noteIndex].mantra;
-	// 		noteIndex += 1;
-	// 		if (noteIndex >= notes.length) {
-	// 			noteIndex = 0;
-	// 		}
-	// 	}).start(0);
-	// 	soundLoaded = true;
-	// }
+	function pauseTimer() {
+		clearTimeout(timerId);
+		timerStore.pauseTimer();
+		if (soundInitialized) {
+			soundManager.pause();
+		}
+	}
 
 	function handleTimerSelect(index: number) {
 		if (isRunning) {
-			pauseTimers();
+			pauseTimer();
 		}
-		timerIndex = index;
-		timeRemaining = durations[index];
+		timerStore.selectPhase(index);
 	}
 
-	// function handleSoundToggle() {
-	// 	soundPlaying = !soundPlaying;
-	// 	console.log(soundPlaying);
-	// }
+	function handleSoundToggle() {
+		timerStore.toggleSound();
+
+		// Initialize sound if enabling and not already initialized
+		if (!soundInitialized && $timerStore.soundEnabled) {
+			soundManager
+				.initialize()
+				.then(() => {
+					soundInitialized = true;
+				})
+				.catch((error) => {
+					console.error('Failed to initialize sound:', error);
+				});
+		}
+	}
 </script>
 
-<section class="text-center my-6">
-	<span class="countdown font-mono text-3xl">
-		<span
-			style="--value:{padWithZeroes(secondsToMinutes(millisecondsToSeconds(timeRemaining)))};"
-		/>:
-		<span style="--value:{padWithZeroes(millisecondsToSeconds(timeRemaining) % 60)};" />
-	</span>
-	<div class="my-3">
-		{#if isRunning}
-			<button class="btn btn-warning" on:click={pauseTimers} disabled={!isRunning}>PAUSE</button>
-		{:else}
-			<button class="btn btn-success" on:click={startTimers} disabled={isRunning}>START</button>
-		{/if}
-		<button class="btn btn-error" on:click={resetTimers} disabled={isRunning}>RESET</button>
-	</div>
-	<p class="font-bold my-3">
-		<span class="">{timerIndex + 1}. {formatTime(durations[timerIndex])} {actionLabel}</span>
-		{#if mantra}
-			<span class="font-medium">: {mantra}</span>
-		{/if}
-	</p>
-</section>
-<section class="text-center my-6">
-	<ul>
-		{#each durations as duration, index (index)}
-			<li class="cursor-pointer">
-				<button
-					on:click={() => handleTimerSelect(index)}
-					on:keypress={() => handleTimerSelect(index)}
-				>
-					{index + 1}.
-					<span class="underline hover:text-primary">
-						{formatTime(duration)}
-						{actions[index]}
-					</span>
+<div class="card bg-base-100 shadow-xl">
+	<!-- Progress Indicator Component -->
+	<ProgressIndicator />
+
+	<!-- Timer Display -->
+	<section class="text-center p-6">
+		<span class="countdown font-mono text-5xl">
+			<span
+				style="--value:{padWithZeroes(secondsToMinutes(millisecondsToSeconds(timeRemaining)))};"
+			/>:
+			<span style="--value:{padWithZeroes(millisecondsToSeconds(timeRemaining) % 60)};" />
+		</span>
+
+		<!-- Timer Controls -->
+		<div class="my-4 flex justify-center gap-2">
+			{#if isRunning}
+				<button class="btn btn-warning" on:click={pauseTimer} disabled={!isRunning}>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5 mr-1"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M10 9v6m4-6v6M9 9h1v6H9V9zm5 0h1v6h-1V9z"
+						/>
+					</svg>
+					PAUSE
 				</button>
-			</li>
-		{/each}
-	</ul>
-</section>
-<!-- <section class="my-6">
-	<div class="flex gap-3">
-		<label class="cursor-pointer label flex flex-col gap-2">
-			<span class="label-text">Sound</span>
-			<input
-				type="checkbox"
-				class="toggle toggle-primary"
-				bind:checked={soundEnabled}
-				on:click={handleSoundToggle}
-			/>
-		</label>
-		{#if soundEnabled}
-			<label class="label flex-1 flex flex-col gap-2">
-				<span class="label-text">Volume: {volumeValue}</span>
-				<input type="range" min="0" max="100" bind:value={volumeValue} class="range" step="1" />
+			{:else}
+				<button class="btn btn-success" on:click={startTimer} disabled={isRunning}>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5 mr-1"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+						/>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					START
+				</button>
+			{/if}
+			<button class="btn btn-error" on:click={resetTimer} disabled={isRunning}>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5 mr-1"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+					/>
+				</svg>
+				RESET
+			</button>
+		</div>
+
+		<!-- Current Phase Info -->
+		<div class="card bg-base-200 p-4 my-4">
+			<h3 class="text-xl font-bold">
+				Phase {currentPhaseIndex + 1}: {actionLabel}
+			</h3>
+			<p class="text-lg">
+				{formatTime($timerStore.phases[currentPhaseIndex].durationMinutes * 60 * 1000)}
+				{#if mantra}
+					<span class="badge badge-primary ml-2">{mantra}</span>
+				{/if}
+			</p>
+		</div>
+	</section>
+
+	<!-- Phase Selection -->
+	<section class="px-6 pb-4">
+		<div class="flex flex-wrap gap-2 justify-center">
+			{#each $timerStore.phases as phase, index (index)}
+				<button
+					class="btn btn-sm {index === currentPhaseIndex ? 'btn-primary' : 'btn-outline'}"
+					on:click={() => handleTimerSelect(index)}
+				>
+					{index + 1}. {phase.action}
+				</button>
+			{/each}
+		</div>
+	</section>
+
+	<!-- Sound Controls -->
+	<section class="px-6 pb-6">
+		<div class="flex gap-3 items-center">
+			<label class="cursor-pointer label flex items-center gap-2">
+				<span class="label-text font-medium">Sound</span>
+				<input
+					type="checkbox"
+					class="toggle toggle-primary"
+					checked={soundEnabled}
+					on:click={handleSoundToggle}
+				/>
 			</label>
-		{/if}
-	</div>
-</section> -->
+			{#if soundEnabled}
+				<label class="label flex-1 flex items-center gap-2">
+					<span class="label-text">Volume: {volumeLevel}</span>
+					<input
+						type="range"
+						min="0"
+						max="100"
+						value={volumeLevel}
+						class="range"
+						step="1"
+						on:input={(e) => timerStore.setVolumeLevel(parseInt(e.target.value))}
+					/>
+				</label>
+			{/if}
+		</div>
+	</section>
+</div>
+
+<!-- Resources Section -->
 <section class="my-6">
 	<div tabindex="-1" class="collapse collapse-arrow border border-base-300 bg-base-200">
 		<div class="collapse-title text-xl font-medium">Resources</div>
