@@ -25,7 +25,6 @@ export class SoundManager {
   private vol: Tone.Volume | null = null;
   private noteIndex = 0;
   private _isInitialized = false;
-  private _isMuted = true;
   private _currentMantra = '';
   private _volumeLevel = 70;
 
@@ -67,7 +66,6 @@ export class SoundManager {
       
       // Start muted by default
       this.vol.mute = true;
-      this._isMuted = true;
       this._isInitialized = true;
       
       // Set BPM for the mantra chanting
@@ -86,7 +84,6 @@ export class SoundManager {
     
     if (this.vol) {
       this.vol.mute = false;
-      this._isMuted = false;
     }
     
     Tone.Transport.start();
@@ -95,7 +92,6 @@ export class SoundManager {
   stop(): void {
     if (this.vol) {
       this.vol.mute = true;
-      this._isMuted = true;
     }
   }
 

@@ -263,7 +263,11 @@
 						value={volumeLevel}
 						class="range"
 						step="1"
-						on:input={(e) => timerStore.setVolumeLevel(parseInt(e.target.value))}
+						on:input={(e) => {
+						if (e.target instanceof HTMLInputElement) {
+							timerStore.setVolumeLevel(parseInt(e.target.value));
+						}
+					}}
 					/>
 				</label>
 			{/if}

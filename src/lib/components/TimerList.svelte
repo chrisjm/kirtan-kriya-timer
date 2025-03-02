@@ -31,10 +31,11 @@
 								class="range"
 								value={phase.volume}
 								on:input={(e) => {
-									const target = e.target;
-									const newPhases = [...$timerStore.phases];
-									newPhases[i].volume = parseInt(target.value);
-									timerStore.updatePhases(newPhases);
+									if (e.target instanceof HTMLInputElement) {
+										const newPhases = [...$timerStore.phases];
+										newPhases[i].volume = parseInt(e.target.value);
+										timerStore.updatePhases(newPhases);
+									}
 								}}
 							/>
 						</td>
