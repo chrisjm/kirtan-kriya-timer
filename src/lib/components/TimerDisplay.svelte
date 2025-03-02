@@ -136,23 +136,20 @@
 	}
 </script>
 
-<div class="card bg-base-100 shadow-xl">
+<div class="rounded-lg bg-white shadow-xl dark:bg-gray-800">
 	<!-- Progress Indicator Component -->
 	<ProgressIndicator />
 
 	<!-- Timer Display -->
 	<section class="text-center p-6">
-		<span class="countdown font-mono text-5xl">
-			<span
-				style="--value:{padWithZeroes(secondsToMinutes(millisecondsToSeconds(timeRemaining)))};"
-			/>:
-			<span style="--value:{padWithZeroes(millisecondsToSeconds(timeRemaining) % 60)};" />
-		</span>
+		<div class="font-mono text-5xl tabular-nums tracking-wider">
+			{padWithZeroes(secondsToMinutes(millisecondsToSeconds(timeRemaining)))}:{padWithZeroes(millisecondsToSeconds(timeRemaining) % 60)}
+		</div>
 
 		<!-- Timer Controls -->
 		<div class="my-4 flex justify-center gap-2">
 			{#if isRunning}
-				<button class="btn btn-warning" on:click={pauseTimer} disabled={!isRunning}>
+				<button class="inline-flex items-center px-4 py-2 rounded-lg bg-warning text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" on:click={pauseTimer} disabled={!isRunning}>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						class="h-5 w-5 mr-1"
@@ -170,7 +167,7 @@
 					PAUSE
 				</button>
 			{:else}
-				<button class="btn btn-success" on:click={startTimer} disabled={isRunning}>
+				<button class="inline-flex items-center px-4 py-2 rounded-lg bg-success text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" on:click={startTimer} disabled={isRunning}>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						class="h-5 w-5 mr-1"
@@ -194,7 +191,7 @@
 					START
 				</button>
 			{/if}
-			<button class="btn btn-error" on:click={resetTimer} disabled={isRunning}>
+			<button class="inline-flex items-center px-4 py-2 rounded-lg bg-error text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" on:click={resetTimer} disabled={isRunning}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="h-5 w-5 mr-1"
@@ -214,14 +211,14 @@
 		</div>
 
 		<!-- Current Phase Info -->
-		<div class="card bg-base-200 p-4 my-4">
+		<div class="rounded-lg bg-gray-100 dark:bg-gray-700 p-4 my-4">
 			<h3 class="text-xl font-bold">
 				Phase {currentPhaseIndex + 1}: {actionLabel}
 			</h3>
 			<p class="text-lg">
 				{formatTime($timerStore.phases[currentPhaseIndex].durationMinutes * 60 * 1000)}
 				{#if mantra}
-					<span class="badge badge-primary ml-2">{mantra}</span>
+					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white ml-2">{mantra}</span>
 				{/if}
 			</p>
 		</div>
@@ -232,7 +229,7 @@
 		<div class="flex flex-wrap gap-2 justify-center">
 			{#each $timerStore.phases as phase, index (index)}
 				<button
-					class="btn btn-sm {index === currentPhaseIndex ? 'btn-primary' : 'btn-outline'}"
+					class="inline-flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors {index === currentPhaseIndex ? 'bg-primary text-white hover:bg-emerald-600' : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}"
 					on:click={() => handleTimerSelect(index)}
 				>
 					{index + 1}. {phase.action}
@@ -277,7 +274,7 @@
 
 <!-- Resources Section -->
 <section class="my-6">
-	<div tabindex="-1" class="collapse collapse-arrow border border-base-300 bg-base-200">
+	<div tabindex="-1" class="border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
 		<div class="collapse-title text-xl font-medium">Resources</div>
 		<div class="collapse-content">
 			<ul class="list-disc pl-6">
