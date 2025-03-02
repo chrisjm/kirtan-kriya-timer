@@ -147,13 +147,19 @@
 	<!-- Timer Display -->
 	<section class="text-center p-6">
 		<div class="font-mono text-5xl tabular-nums tracking-wider">
-			{padWithZeroes(secondsToMinutes(millisecondsToSeconds(timeRemaining)))}:{padWithZeroes(millisecondsToSeconds(timeRemaining) % 60)}
+			{padWithZeroes(secondsToMinutes(millisecondsToSeconds(timeRemaining)))}:{padWithZeroes(
+				millisecondsToSeconds(timeRemaining) % 60
+			)}
 		</div>
 
 		<!-- Timer Controls -->
 		<div class="my-4 flex justify-center gap-2">
 			{#if isRunning}
-				<button class="inline-flex items-center px-4 py-2 rounded-lg bg-warning text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" on:click={pauseTimer} disabled={!isRunning}>
+				<button
+					class="inline-flex items-center px-4 py-2 rounded-lg bg-warning text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+					on:click={pauseTimer}
+					disabled={!isRunning}
+				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						class="h-5 w-5 mr-1"
@@ -171,7 +177,11 @@
 					PAUSE
 				</button>
 			{:else}
-				<button class="inline-flex items-center px-4 py-2 rounded-lg bg-success text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" on:click={startTimer} disabled={isRunning}>
+				<button
+					class="inline-flex items-center px-4 py-2 rounded-lg bg-success text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+					on:click={startTimer}
+					disabled={isRunning}
+				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						class="h-5 w-5 mr-1"
@@ -195,7 +205,11 @@
 					START
 				</button>
 			{/if}
-			<button class="inline-flex items-center px-4 py-2 rounded-lg bg-error text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" on:click={resetTimer} disabled={isRunning}>
+			<button
+				class="inline-flex items-center px-4 py-2 rounded-lg bg-error text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+				on:click={resetTimer}
+				disabled={isRunning}
+			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="h-5 w-5 mr-1"
@@ -222,7 +236,10 @@
 			<p class="text-lg">
 				{formatTime($timerStore.phases[currentPhaseIndex].durationMinutes * 60 * 1000)}
 				{#if mantra}
-					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white ml-2">{mantra}</span>
+					<span
+						class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white ml-2"
+						>{mantra}</span
+					>
 				{/if}
 			</p>
 		</div>
@@ -233,7 +250,10 @@
 		<div class="flex flex-wrap gap-2 justify-center">
 			{#each $timerStore.phases as phase, index (index)}
 				<button
-					class="inline-flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors {index === currentPhaseIndex ? 'bg-primary text-white hover:bg-emerald-600' : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+					class="inline-flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors {index ===
+					currentPhaseIndex
+						? 'bg-primary text-white hover:bg-emerald-600'
+						: 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}"
 					on:click={() => handleTimerSelect(index)}
 				>
 					{index + 1}. {phase.action}
@@ -265,47 +285,13 @@
 						class="range"
 						step="1"
 						on:input={(e) => {
-						if (e.target instanceof HTMLInputElement) {
-							timerStore.setVolumeLevel(parseInt(e.target.value));
-						}
-					}}
+							if (e.target instanceof HTMLInputElement) {
+								timerStore.setVolumeLevel(parseInt(e.target.value));
+							}
+						}}
 					/>
 				</label>
 			{/if}
 		</div>
 	</section>
 </div>
-
-<!-- Resources Section -->
-<section class="my-6">
-	<div tabindex="-1" class="border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-		<div class="collapse-title text-xl font-medium">Resources</div>
-		<div class="collapse-content">
-			<ul class="list-disc pl-6">
-				<li>
-					<a
-						href="https://alzheimersprevention.org/research/kirtan-kriya-yoga-exercise/"
-						class="link link-primary"
-						target="_blank"
-						>Practice The 12-Minute Yoga Meditation Exercise - Alzheimer's Research and Prevention
-						Foundation</a
-					>
-				</li>
-				<li>
-					<a
-						href="https://www.ijhsr.org/IJHSR_Vol.11_Issue.1_Jan2021/IJHSR35.pdf"
-						class="link link-primary"
-						target="_blank"
-						>A Review on Therapeutic Effect of Kirtan Kriya Yoga - International Journal of Health
-						Sciences and Research</a
-					>
-				</li>
-				<li>
-					<a href="https://youtu.be/hHFMxq2wjR4" class="link link-primary" target="_blank"
-						>Dr. Dharma on the Healing Power of Kirtan Kriya - YouTube</a
-					>
-				</li>
-			</ul>
-		</div>
-	</div>
-</section>
