@@ -27,6 +27,7 @@ export class SoundManager {
   private _isInitialized = false;
   private _currentMantra = '';
   private _volumeLevel = 70;
+  private mantraChangeCallbacks: ((mantra: string) => void)[] = [];
 
   get isInitialized(): boolean {
     return this._isInitialized;
@@ -34,6 +35,16 @@ export class SoundManager {
 
   get currentMantra(): string {
     return this._currentMantra;
+  }
+
+  onMantraChange(callback: (mantra: string) => void): void {
+    this.mantraChangeCallbacks.push(callback);
+  }
+
+  private notifyMantraChange(): void {
+    for (const callback of this.mantraChangeCallbacks) {
+      callback(this._currentMantra);
+    }
   }
 
   set volumeLevel(value: number) {
@@ -70,6 +81,7 @@ export class SoundManager {
         if (this.synth) {
           this.synth.triggerAttackRelease(mantraNotes[this.noteIndex].pitch, '2n', time);
           this._currentMantra = mantraNotes[this.noteIndex].mantra;
+          this.notifyMantraChange();
           this.noteIndex = (this.noteIndex + 1) % mantraNotes.length;
         }
       }, '2n').start(0);
@@ -146,6 +158,7 @@ export class SoundManager {
     
     this._isInitialized = false;
     this.noteIndex = 0;
+    this.mantraChangeCallbacks = [];
   }
 }
 

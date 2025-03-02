@@ -40,8 +40,12 @@
 		soundManager.stop();
 	}
 
-	// Get mantra from sound manager
+	// Subscribe to mantra changes
 	$: if (soundInitialized && soundManager) {
+		soundManager.onMantraChange((newMantra) => {
+			mantra = newMantra;
+		});
+		// Set initial mantra
 		mantra = soundManager.currentMantra;
 	}
 

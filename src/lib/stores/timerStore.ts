@@ -63,19 +63,19 @@ const createTimerStore = () => {
 
   return {
     subscribe,
-    
+
     startTimer: () => update(state => {
       const newState = { ...state, isRunning: true };
       saveState(newState);
       return newState;
     }),
-    
+
     pauseTimer: () => update(state => {
       const newState = { ...state, isRunning: false };
       saveState(newState);
       return newState;
     }),
-    
+
     resetTimer: () => update(state => {
       const newState = {
         ...state,
@@ -86,13 +86,13 @@ const createTimerStore = () => {
       saveState(newState);
       return newState;
     }),
-    
+
     updateTimeRemaining: (timeRemaining: number) => update(state => {
       const newState = { ...state, timeRemaining };
       // Don't save every time update to avoid excessive writes
       return newState;
     }),
-    
+
     nextPhase: () => update(state => {
       if (state.currentPhaseIndex >= state.phases.length - 1) {
         // If we're at the last phase, reset
@@ -116,10 +116,10 @@ const createTimerStore = () => {
         return newState;
       }
     }),
-    
+
     selectPhase: (index: number) => update(state => {
       if (index < 0 || index >= state.phases.length) return state;
-      
+
       const newState = {
         ...state,
         currentPhaseIndex: index,
@@ -128,32 +128,18 @@ const createTimerStore = () => {
       saveState(newState);
       return newState;
     }),
-    
+
     toggleSound: () => update(state => {
       const newState = { ...state, soundEnabled: !state.soundEnabled };
       saveState(newState);
       return newState;
     }),
-    
+
     setVolumeLevel: (volumeLevel: number) => update(state => {
       const newState = { ...state, volumeLevel };
       saveState(newState);
       return newState;
     }),
-    
-    updatePhases: (phases: TimerPhase[]) => update(state => {
-      // Only allow updating volume levels, keep other properties fixed
-      const newPhases = state.phases.map((phase, i) => ({
-        ...phase,
-        volume: phases[i].volume
-      }));
-      const newState = {
-        ...state,
-        phases: newPhases
-      };
-      saveState(newState);
-      return newState;
-    })
   };
 };
 
