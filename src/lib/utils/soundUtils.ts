@@ -54,22 +54,32 @@ export class SoundManager {
     try {
       await Tone.start();
       this.vol = new Tone.Volume(volumeToDecibels(this._volumeLevel)).toDestination();
-      this.synth = new Tone.Synth().connect(this.vol);
+      this.synth = new Tone.Synth({
+        oscillator: {
+          type: 'sine'
+        },
+        envelope: {
+          attack: 0.2,
+          decay: 0.5,
+          sustain: 0.8,
+          release: 0.8
+        }
+      }).connect(this.vol);
       
       this.loop = new Tone.Loop((time) => {
         if (this.synth) {
-          this.synth.triggerAttackRelease(mantraNotes[this.noteIndex].pitch, '4n', time);
+          this.synth.triggerAttackRelease(mantraNotes[this.noteIndex].pitch, '2n', time);
           this._currentMantra = mantraNotes[this.noteIndex].mantra;
           this.noteIndex = (this.noteIndex + 1) % mantraNotes.length;
         }
-      }, '1n').start(0);
+      }, '2n').start(0);
       
       // Start muted by default
       this.vol.mute = true;
       this._isInitialized = true;
       
       // Set BPM for the mantra chanting
-      Tone.Transport.bpm.value = 60;
+      Tone.Transport.bpm.value = 50;
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       throw error;
