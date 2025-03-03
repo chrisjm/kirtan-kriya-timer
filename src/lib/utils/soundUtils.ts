@@ -1,3 +1,5 @@
+// NOTE: not used, but keep for prosperity until functionality is complete
+
 import * as Tone from 'tone';
 
 export interface MantraNote {

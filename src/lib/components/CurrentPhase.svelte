@@ -1,23 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { timerStore } from '$lib/stores/timerStore';
 	import { formatTime } from '$lib/utils/formatUtils';
-	import { soundManager } from '$lib/utils/soundUtils';
+	import { soundStore } from '$lib/stores/soundStore';
 
 	$: currentPhaseIndex = $timerStore.currentPhaseIndex;
 	$: actionLabel = $timerStore.phases[currentPhaseIndex].action;
-	let currentMantra = '';
-
-	onMount(() => {
-		// Subscribe to mantra changes
-		soundManager.onMantraChange((newMantra) => {
-			currentMantra = newMantra;
-		});
-		// Set initial mantra if available
-		if (soundManager.currentMantra) {
-			currentMantra = soundManager.currentMantra;
-		}
-	});
+	$: currentMantra = $soundStore.currentMantra;
 </script>
 
 <div class="rounded-lg bg-gray-100 dark:bg-gray-700 p-4 my-4">

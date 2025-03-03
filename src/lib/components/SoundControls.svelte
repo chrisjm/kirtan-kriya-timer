@@ -1,16 +1,27 @@
 <script lang="ts">
 	import { soundStore } from '$lib/stores/soundStore';
+	let isInitializing = false;
 
 	// Initialize sound when enabling
 	async function toggleSound() {
+		// Prevent multiple initialization attempts
+		if (isInitializing) return;
+		
 		if (!$soundStore.isInitialized) {
+			isInitializing = true;
 			try {
 				await soundStore.initialize();
 			} catch (error) {
 				console.error('Failed to initialize sound:', error);
+			} finally {
+				isInitializing = false;
 			}
 		}
-		soundStore.toggleMute();
+		
+		// Only toggle mute if initialization succeeded
+		if ($soundStore.isInitialized) {
+			soundStore.toggleMute();
+		}
 	}
 </script>
 

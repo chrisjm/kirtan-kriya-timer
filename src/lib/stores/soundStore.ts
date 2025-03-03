@@ -1,6 +1,24 @@
-import { derived, writable, type Readable } from 'svelte/store';
-import { timerStore } from './timerStore';
-import { soundManager } from '../utils/soundUtils';
+import { derived, writable, get, type Readable } from 'svelte/store';
+import { timerStore, type TimerPhase } from './timerStore';
+import * as Tone from 'tone';
+
+// The four syllables of the Kirtan Kriya mantra with corresponding notes
+export interface MantraNote {
+  pitch: string;
+  mantra: string;
+}
+
+export const mantraNotes: MantraNote[] = [
+  { pitch: 'E3', mantra: 'Sa' },
+  { pitch: 'D3', mantra: 'Ta' },
+  { pitch: 'C3', mantra: 'Na' },
+  { pitch: 'D3', mantra: 'Ma' }
+];
+
+// Convert volume percentage to decibels for Tone.js
+const volumeToDecibels = (value: number, r1 = [0, 100], r2 = [-48, 0]): number => {
+  return Math.floor(((value - r1[0]) * (r2[1] - r2[0])) / (r1[1] - r1[0]) + r2[0]);
+};
 
 export interface SoundState {
   isInitialized: boolean;
@@ -8,95 +26,238 @@ export interface SoundState {
   volumeLevel: number;
   currentMantra: string;
   isMuted: boolean;
+  currentPhase: string;
 }
 
 function createSoundStore() {
+  // Private sound engine state
+  let synth: Tone.Synth | null = null;
+  let loop: Tone.Loop | null = null;
+  let vol: Tone.Volume | null = null;
+  let noteIndex = 0;
+  const mantraChangeCallbacks: ((mantra: string) => void)[] = [];
+
+  // Create the writable store
   const { subscribe, update, set } = writable<SoundState>({
     isInitialized: false,
     isPlaying: false,
     volumeLevel: 70,
     currentMantra: '',
-    isMuted: true
-  });
-
-  // Subscribe to mantra changes from the sound manager
-  soundManager.onMantraChange((mantra: string) => {
-    update(state => ({ ...state, currentMantra: mantra }));
+    isMuted: true,
+    currentPhase: ''
   });
 
   // Create a derived store that combines timer and sound state
-  const combinedState: Readable<SoundState & { shouldPlay: boolean }> = derived(
+  const combinedState: Readable<SoundState & {
+    shouldPlay: boolean;
+    timerPhase: TimerPhase | null;
+  }> = derived(
     [timerStore],
     ([$timerStore], set) => {
       subscribe(soundState => {
         set({
           ...soundState,
-          shouldPlay: $timerStore.isRunning && !soundState.isMuted
+          shouldPlay: $timerStore.isRunning && !soundState.isMuted,
+          timerPhase: $timerStore.phases[$timerStore.currentPhaseIndex] || null,
+          currentPhase: $timerStore.phases[$timerStore.currentPhaseIndex]?.action || ''
         });
       });
     }
   );
 
+  // Helper to notify mantra change
+  const notifyMantraChange = (mantra: string): void => {
+    update(state => ({ ...state, currentMantra: mantra }));
+    for (const callback of mantraChangeCallbacks) {
+      callback(mantra);
+    }
+  };
+
+  // Private audio control methods
+  const pauseAudio = (): void => {
+    if (!vol) return;
+    vol.mute = true;
+    Tone.Transport.pause();
+  };
+
+  const resumeAudio = (): void => {
+    if (!vol) return;
+    Tone.Transport.start();
+    vol.mute = false;
+
+    // Trigger immediate note if not already playing
+    if (synth && Tone.Transport.state !== 'started') {
+      synth.triggerAttackRelease(mantraNotes[noteIndex].pitch, '2n');
+      notifyMantraChange(mantraNotes[noteIndex].mantra);
+      noteIndex = (noteIndex + 1) % mantraNotes.length;
+    }
+  };
+  
+  // Helper to safely set volume level with proper checks
+  const safeSetVolume = (volumeLevel: number, phaseVolumeLevel?: number): void => {
+    if (!vol) return;
+    
+    try {
+      // If we have a phase volume, scale by it
+      let scaledVolume = volumeLevel;
+      if (phaseVolumeLevel !== undefined) {
+        scaledVolume = (volumeLevel * phaseVolumeLevel) / 100;
+      }
+      
+      // Ensure we have a valid number before setting
+      const dbValue = volumeToDecibels(scaledVolume);
+      if (dbValue !== null && !isNaN(dbValue)) {
+        vol.volume.value = dbValue;
+      }
+    } catch (error) {
+      console.error('Error setting volume:', error);
+    }
+  };
+
   // Subscribe to combined state changes to manage audio
   combinedState.subscribe(state => {
     if (state.shouldPlay && state.isInitialized) {
-      soundManager.resume();
+      resumeAudio();
+
+      // Adjust volume based on current phase if available
+      if (state.timerPhase) {
+        safeSetVolume(state.volumeLevel, state.timerPhase.volumeLevel);
+      }
     } else {
-      soundManager.pause();
+      pauseAudio();
     }
   });
 
+  // Public store API
   return {
     subscribe,
 
     async initialize(): Promise<void> {
+      if (get({ subscribe }).isInitialized) return;
+
       try {
-        await soundManager.initialize();
+        await Tone.start();
+        const initialVolume = volumeToDecibels(get({ subscribe }).volumeLevel);
+        vol = new Tone.Volume(initialVolume !== null ? initialVolume : -10).toDestination();
+        synth = new Tone.Synth({
+          oscillator: {
+            type: 'sine'
+          },
+          envelope: {
+            attack: 0.2,
+            decay: 0.5,
+            sustain: 0.8,
+            release: 0.8
+          }
+        }).connect(vol);
+
+        loop = new Tone.Loop((time) => {
+          if (synth) {
+            synth.triggerAttackRelease(mantraNotes[noteIndex].pitch, '2n', time);
+            notifyMantraChange(mantraNotes[noteIndex].mantra);
+            noteIndex = (noteIndex + 1) % mantraNotes.length;
+          }
+        }, '2n');
+
+        // Start muted by default
+        vol.mute = true;
+
+        // Set BPM for the mantra chanting
+        Tone.Transport.bpm.value = 50;
+
+        // Start the loop and transport immediately
+        loop.start(0);
+        Tone.Transport.start();
+
         update(state => ({ ...state, isInitialized: true }));
       } catch (error) {
-        console.error('Failed to initialize sound store:', error);
+        console.error('Failed to initialize audio:', error);
         throw error;
       }
     },
 
     setVolume(level: number): void {
       if (level < 0 || level > 100) return;
-      soundManager.volumeLevel = level;
-      update(state => ({ ...state, volumeLevel: level }));
+
+      update(state => {
+        // Get current timer phase to scale volume appropriately
+        const timerState = get(timerStore);
+        const currentPhase = timerState.phases[timerState.currentPhaseIndex];
+        
+        if (currentPhase) {
+          safeSetVolume(level, currentPhase.volumeLevel);
+        } else {
+          safeSetVolume(level);
+        }
+
+        return { ...state, volumeLevel: level };
+      });
     },
 
     toggleMute(): void {
       update(state => {
         const newMuted = !state.isMuted;
         if (newMuted) {
-          soundManager.stop();
+          pauseAudio();
         } else {
-          let isRunning = false;
-          const unsubscribe = timerStore.subscribe(state => {
-            isRunning = state.isRunning;
-          });
-          unsubscribe();
-          
-          if (isRunning) {
-            soundManager.resume();
+          const timerState = get(timerStore);
+          if (timerState.isRunning) {
+            resumeAudio();
           }
         }
         return { ...state, isMuted: newMuted };
       });
     },
 
+    onMantraChange(callback: (mantra: string) => void): void {
+      mantraChangeCallbacks.push(callback);
+    },
+
     playNotification(): void {
-      soundManager.playNotification();
+      if (!get({ subscribe }).isInitialized) return;
+
+      try {
+        const notifySynth = new Tone.Synth().toDestination();
+        const volumeDb = volumeToDecibels(get({ subscribe }).volumeLevel);
+        if (volumeDb !== null && !isNaN(volumeDb)) {
+          notifySynth.volume.value = volumeDb;
+        }
+
+        // Play a simple notification melody
+        const now = Tone.now();
+        notifySynth.triggerAttackRelease('G4', '8n', now);
+        notifySynth.triggerAttackRelease('C5', '8n', now + 0.25);
+        notifySynth.triggerAttackRelease('E5', '4n', now + 0.5);
+      } catch (error) {
+        console.error('Error playing notification:', error);
+      }
     },
 
     dispose(): void {
-      soundManager.dispose();
+      if (loop) {
+        loop.dispose();
+        loop = null;
+      }
+
+      if (synth) {
+        synth.dispose();
+        synth = null;
+      }
+
+      if (vol) {
+        vol.dispose();
+        vol = null;
+      }
+
+      noteIndex = 0;
+
       set({
         isInitialized: false,
         isPlaying: false,
         volumeLevel: 70,
         currentMantra: '',
-        isMuted: true
+        isMuted: true,
+        currentPhase: ''
       });
     }
   };

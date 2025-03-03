@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timerStore } from '$lib/stores/timerStore';
-	import { soundManager } from '$lib/utils/soundUtils';
+	import { soundStore } from '$lib/stores/soundStore';
 	import ProgressIndicator from './ProgressIndicator.svelte';
 	import TimerControls from './TimerControls.svelte';
 	import PhaseSelection from './PhaseSelection.svelte';
@@ -15,7 +15,11 @@
 	let soundInitialized = false;
 
 	onMount(() => {
-		soundInitialized = true;
+		// Initialize sound store
+		soundStore.initialize().then(() => {
+			soundInitialized = true;
+		});
+
 		// Subscribe to store changes to handle timer start/stop
 		timerStore.subscribe((state) => {
 			if (state.isRunning && !timerId) {
@@ -25,10 +29,6 @@
 		});
 	});
 
-	// Update sound manager volume when store volume changes
-	$: if (soundInitialized && soundManager) {
-		soundManager.volumeLevel = $timerStore.volumeLevel;
-	}
 
 	// Timer countdown function
 	function updateCountdown() {
@@ -46,7 +46,7 @@
 		} else if (newTimeRemaining <= 0) {
 			// Play notification sound at phase change
 			if (soundInitialized) {
-				soundManager.playNotification();
+				soundStore.playNotification();
 			}
 
 			// Check if we're at the last phase
