@@ -26,7 +26,7 @@
 	</h3>
 	<p class="text-lg">
 		{formatTime($timerStore.phases[currentPhaseIndex].durationMinutes * 60 * 1000)}
-		{#if $timerStore.soundEnabled && currentMantra}
+		{#if currentMantra !== ''}
 			<span
 				class="inline-flex items-center px-2.5 py-0.5 rounded-full text-base font-medium bg-primary text-white ml-2"
 				>{currentMantra}</span

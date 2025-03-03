@@ -17,7 +17,7 @@
 	onMount(() => {
 		soundInitialized = true;
 		// Subscribe to store changes to handle timer start/stop
-		timerStore.subscribe(state => {
+		timerStore.subscribe((state) => {
 			if (state.isRunning && !timerId) {
 				timerEndTime = Date.now() + state.timeRemaining;
 				updateCountdown();
@@ -28,17 +28,6 @@
 	// Update sound manager volume when store volume changes
 	$: if (soundInitialized && soundManager) {
 		soundManager.volumeLevel = $timerStore.volumeLevel;
-	}
-
-	// Manage sound based on timer state
-	$: {
-		if (soundInitialized && $timerStore.isRunning && $timerStore.soundEnabled) {
-			soundManager.resume();
-		} else if (soundInitialized && $timerStore.soundEnabled) {
-			soundManager.pause();
-		} else if (soundInitialized) {
-			soundManager.stop();
-		}
 	}
 
 	// Timer countdown function
@@ -56,7 +45,7 @@
 			timerId = setTimeout(updateCountdown, 1000);
 		} else if (newTimeRemaining <= 0) {
 			// Play notification sound at phase change
-			if (soundInitialized && $timerStore.soundEnabled) {
+			if (soundInitialized) {
 				soundManager.playNotification();
 			}
 
@@ -85,9 +74,6 @@
 		clearTimeout(timerId);
 		timerId = undefined;
 		timerStore.pauseTimer();
-		if (soundInitialized) {
-			soundManager.pause();
-		}
 	}
 </script>
 

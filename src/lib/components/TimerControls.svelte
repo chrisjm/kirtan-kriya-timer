@@ -1,12 +1,24 @@
 <script lang="ts">
 	import { timerStore } from '$lib/stores/timerStore';
+
+	function startTimer() {
+		timerStore.startTimer();
+	}
+
+	function pauseTimer() {
+		timerStore.pauseTimer();
+	}
+
+	function resetTimer() {
+		timerStore.resetTimer();
+	}
 </script>
 
 <div class="my-4 flex justify-center gap-2">
 	{#if $timerStore.isRunning}
 		<button
 			class="inline-flex items-center px-4 py-2 rounded-lg bg-warning text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-			on:click={() => timerStore.pauseTimer()}
+			on:click={pauseTimer}
 			disabled={!$timerStore.isRunning}
 		>
 			<svg
@@ -28,7 +40,7 @@
 	{:else}
 		<button
 			class="inline-flex items-center px-4 py-2 rounded-lg bg-success text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-			on:click={() => timerStore.startTimer()}
+			on:click={startTimer}
 			disabled={$timerStore.isRunning}
 		>
 			<svg
@@ -56,7 +68,7 @@
 	{/if}
 	<button
 		class="inline-flex items-center px-4 py-2 rounded-lg bg-error text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-		on:click={() => timerStore.resetTimer()}
+		on:click={resetTimer}
 		disabled={$timerStore.isRunning}
 	>
 		<svg

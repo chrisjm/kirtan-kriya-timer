@@ -1,19 +1,16 @@
 <script lang="ts">
-	import { timerStore } from '$lib/stores/timerStore';
-	import { soundManager } from '$lib/utils/soundUtils';
+	import { soundStore } from '$lib/stores/soundStore';
 
 	// Initialize sound when enabling
 	async function toggleSound() {
-		if (!$timerStore.soundEnabled) {
+		if (!$soundStore.isInitialized) {
 			try {
-				await soundManager.initialize();
-				timerStore.toggleSound();
+				await soundStore.initialize();
 			} catch (error) {
 				console.error('Failed to initialize sound:', error);
 			}
-		} else {
-			timerStore.toggleSound();
 		}
+		soundStore.toggleMute();
 	}
 </script>
 
@@ -24,27 +21,32 @@
 			<input
 				type="checkbox"
 				class="toggle toggle-primary"
-				checked={$timerStore.soundEnabled}
+				checked={!$soundStore.isMuted}
 				on:click={toggleSound}
 			/>
 		</label>
-		{#if $timerStore.soundEnabled}
+		{#if !$soundStore.isMuted}
 			<label class="label flex-1 flex items-center gap-2">
-				<span class="label-text">Volume: {$timerStore.volumeLevel}</span>
+				<span class="label-text">Volume: {$soundStore.volumeLevel}</span>
 				<input
 					type="range"
 					min="0"
 					max="100"
-					value={$timerStore.volumeLevel}
+					value={$soundStore.volumeLevel}
 					class="range"
 					step="1"
 					on:input={(e) => {
 						if (e.target instanceof HTMLInputElement) {
-							timerStore.setVolumeLevel(parseInt(e.target.value));
+							soundStore.setVolume(parseInt(e.target.value));
 						}
 					}}
 				/>
 			</label>
 		{/if}
 	</div>
+	{#if !$soundStore.isMuted && $soundStore.currentMantra}
+		<div class="text-sm text-center mt-2 text-base-content/70">
+			Current Mantra: {$soundStore.currentMantra}
+		</div>
+	{/if}
 </section>

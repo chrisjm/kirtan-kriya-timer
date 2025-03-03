@@ -29,7 +29,7 @@
 	function getPhaseColor(phase: TimerPhase, isActive: boolean, isCompleted: boolean): string {
 		const hue = 215;
 		const saturation = isActive ? 90 : 70;
-		const brightness = 30 + (phase.volume / 100) * 60;
+		const brightness = 30 + (phase.volumeLevel / 100) * 60;
 
 		if (isCompleted) {
 			return `hsl(${hue}, ${saturation}%, ${brightness + 10}%)`;
@@ -78,7 +78,7 @@
 				style="
           width: {phasePercentages[i]}%;
           background-color: {getPhaseColor(phase, isActive, isCompleted)};
-          color: {phase.volume > 50 ? 'white' : 'black'};
+          color: {phase.volumeLevel > 50 ? 'white' : 'black'};
         "
 				on:click={(e) => handlePhaseClick(e, i)}
 				on:mouseenter={() => (hoveredPhase = i)}

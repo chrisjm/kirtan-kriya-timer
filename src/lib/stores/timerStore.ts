@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 export interface TimerPhase {
   action: string;
   durationMinutes: number;
-  volume: number;
+  volumeLevel: number;
 }
 
 export interface TimerState {
@@ -11,17 +11,16 @@ export interface TimerState {
   currentPhaseIndex: number;
   isRunning: boolean;
   timeRemaining: number;
-  soundEnabled: boolean;
   volumeLevel: number;
 }
 
 // Default Kirtan Kriya meditation phases - fixed sequence
 const defaultPhases: TimerPhase[] = [
-  { action: 'Out-loud chant', durationMinutes: 2, volume: 90 },
-  { action: 'Whisper chant', durationMinutes: 2, volume: 60 },
-  { action: 'Mental chant', durationMinutes: 4, volume: 30 },
-  { action: 'Whisper chant', durationMinutes: 2, volume: 60 },
-  { action: 'Out-loud chant', durationMinutes: 2, volume: 90 }
+  { action: 'Out-loud chant', durationMinutes: 2, volumeLevel: 90 },
+  { action: 'Whisper chant', durationMinutes: 2, volumeLevel: 60 },
+  { action: 'Mental chant', durationMinutes: 4, volumeLevel: 30 },
+  { action: 'Whisper chant', durationMinutes: 2, volumeLevel: 60 },
+  { action: 'Out-loud chant', durationMinutes: 2, volumeLevel: 90 }
 ];
 
 // Create the writable store with initial state
@@ -30,8 +29,7 @@ const createTimerStore = () => {
     phases: defaultPhases,
     currentPhaseIndex: 0,
     isRunning: false,
-    timeRemaining: defaultPhases[0].durationMinutes * 60 * 1000, // Convert minutes to milliseconds
-    soundEnabled: false,
+    timeRemaining: defaultPhases[0].durationMinutes * 60 * 1000,
     volumeLevel: 70
   };
 
@@ -125,18 +123,6 @@ const createTimerStore = () => {
         currentPhaseIndex: index,
         timeRemaining: state.phases[index].durationMinutes * 60 * 1000
       };
-      saveState(newState);
-      return newState;
-    }),
-
-    toggleSound: () => update(state => {
-      const newState = { ...state, soundEnabled: !state.soundEnabled };
-      saveState(newState);
-      return newState;
-    }),
-
-    setVolumeLevel: (volumeLevel: number) => update(state => {
-      const newState = { ...state, volumeLevel };
       saveState(newState);
       return newState;
     }),
