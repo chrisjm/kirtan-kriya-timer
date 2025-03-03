@@ -1,5 +1,5 @@
-import { derived, writable, get, type Readable } from 'svelte/store';
-import { timerStore, type TimerPhase } from './timerStore';
+import { writable, get, derived } from 'svelte/store';
+import { timerStore } from './timerStore';
 import * as Tone from 'tone';
 
 // The four syllables of the Kirtan Kriya mantra with corresponding notes
@@ -22,11 +22,9 @@ const volumeToDecibels = (value: number, r1 = [0, 100], r2 = [-48, 0]): number =
 
 export interface SoundState {
   isInitialized: boolean;
-  isPlaying: boolean;
   volumeLevel: number;
   currentMantra: string;
   isMuted: boolean;
-  currentPhase: string;
 }
 
 function createSoundStore() {
@@ -35,70 +33,25 @@ function createSoundStore() {
   let loop: Tone.Loop | null = null;
   let vol: Tone.Volume | null = null;
   let noteIndex = 0;
-  const mantraChangeCallbacks: ((mantra: string) => void)[] = [];
 
-  // Create the writable store
+  // Create the writable store with initial state
   const { subscribe, update, set } = writable<SoundState>({
     isInitialized: false,
-    isPlaying: false,
     volumeLevel: 70,
     currentMantra: '',
-    isMuted: true,
-    currentPhase: ''
+    isMuted: true
   });
-
-  // Create a derived store that combines timer and sound state
-  const combinedState: Readable<SoundState & {
-    timerRunning: boolean;
-    timerPhase: TimerPhase | null;
-  }> = derived(
-    [timerStore],
-    ([$timerStore], set) => {
-      subscribe(soundState => {
-        set({
-          ...soundState,
-          timerRunning: $timerStore.isRunning,
-          timerPhase: $timerStore.phases[$timerStore.currentPhaseIndex] || null,
-          currentPhase: $timerStore.phases[$timerStore.currentPhaseIndex]?.action || ''
-        });
-      });
-    }
-  );
 
   // Helper to notify mantra change
   const notifyMantraChange = (mantra: string): void => {
     update(state => ({ ...state, currentMantra: mantra }));
-    for (const callback of mantraChangeCallbacks) {
-      callback(mantra);
-    }
-  };
-
-  // Control the Tone.js transport based on timer state
-  const updateTransportState = (timerRunning: boolean): void => {
-    if (timerRunning) {
-      // Start the transport if timer is running
-      if (Tone.Transport.state !== 'started') {
-        Tone.Transport.start();
-      }
-    } else {
-      // Pause the transport if timer is not running
-      if (Tone.Transport.state === 'started') {
-        Tone.Transport.pause();
-      }
-    }
   };
 
   // Helper to safely set volume level with proper checks
-  const safeSetVolume = (volumeLevel: number, phaseVolumeLevel?: number, isMuted: boolean = false): void => {
+  const safeSetVolume = (volumeLevel: number, phaseVolumeLevel?: number): void => {
     if (!vol) return;
 
     try {
-      if (isMuted) {
-        // When muted, set volume to -Infinity (effectively 0)
-        vol.volume.value = -Infinity;
-        return;
-      }
-
       // If we have a phase volume, scale by it
       let scaledVolume = volumeLevel;
       if (phaseVolumeLevel !== undefined) {
@@ -115,21 +68,42 @@ function createSoundStore() {
     }
   };
 
-  // Subscribe to combined state changes to manage audio
-  combinedState.subscribe(state => {
-    if (!state.isInitialized) return;
+  // Create a derived store to handle sound playback based on timer state
+  const soundPlaybackState = derived(
+    [timerStore, { subscribe }],
+    ([$timerStore, $soundStore]) => {
+      return {
+        timerRunning: $timerStore.isRunning,
+        currentPhase: $timerStore.phases[$timerStore.currentPhaseIndex] || null,
+        isMuted: $soundStore.isMuted,
+        volumeLevel: $soundStore.volumeLevel,
+        isInitialized: $soundStore.isInitialized
+      };
+    }
+  );
 
-    // First, control the transport based on timer state
-    updateTransportState(state.timerRunning);
+  // Subscribe to the derived state to control sound playback
+  soundPlaybackState.subscribe(state => {
+    if (!state.isInitialized || !vol) return;
 
-    // Control volume based on mute state and timer state
-    const isEffectivelyMuted = state.isMuted || !state.timerRunning;
-
-    // Adjust volume based on current phase and mute state
-    if (state.timerPhase) {
-      safeSetVolume(state.volumeLevel, state.timerPhase.volumeLevel, isEffectivelyMuted);
+    // Control transport based on timer state
+    if (state.timerRunning) {
+      if (Tone.Transport.state !== 'started') {
+        Tone.Transport.start();
+      }
     } else {
-      safeSetVolume(state.volumeLevel, undefined, isEffectivelyMuted);
+      if (Tone.Transport.state === 'started') {
+        Tone.Transport.pause();
+      }
+    }
+
+    // Handle volume and muting
+    if (state.isMuted || !state.timerRunning) {
+      vol.volume.value = -Infinity; // Effectively mute
+    } else if (state.currentPhase) {
+      safeSetVolume(state.volumeLevel, state.currentPhase.volumeLevel);
+    } else {
+      safeSetVolume(state.volumeLevel);
     }
   });
 
@@ -142,12 +116,14 @@ function createSoundStore() {
 
       try {
         await Tone.start();
+
+        // Initialize volume control
         const initialVolume = volumeToDecibels(get({ subscribe }).volumeLevel);
         vol = new Tone.Volume(initialVolume !== null ? initialVolume : -10).toDestination();
+
+        // Initialize synthesizer
         synth = new Tone.Synth({
-          oscillator: {
-            type: 'sine'
-          },
+          oscillator: { type: 'sine' },
           envelope: {
             attack: 0.2,
             decay: 0.5,
@@ -156,48 +132,35 @@ function createSoundStore() {
           }
         }).connect(vol);
 
-        // Log initial state for debugging
-        console.log('Initializing mantra sequence with notes:', mantraNotes);
-
         // Define note duration for consistency
         const noteDuration = '2n'; // half note
 
         // Create a loop that plays each mantra note in sequence
         loop = new Tone.Loop((time) => {
-          if (synth) {
-            // Always progress through mantras at a steady tempo when
-            // the transport is running (controlled by timer state)
+          if (synth && vol) {
             const currentNote = mantraNotes[noteIndex];
-            console.log(`Current mantra: ${currentNote.mantra}, pitch: ${currentNote.pitch}, index: ${noteIndex}`);
 
-            // Only trigger sound if not muted
-            if (!vol?.mute) {
+            // Only trigger sound if volume is not at -Infinity (effectively muted)
+            if (vol.volume.value > -Infinity) {
               synth.triggerAttackRelease(currentNote.pitch, noteDuration, time);
             }
 
-            // Always notify of mantra change regardless of mute state
+            // Always update the current mantra in the store
             notifyMantraChange(currentNote.mantra);
 
             // Always move to the next note in the sequence
             noteIndex = (noteIndex + 1) % mantraNotes.length;
           }
-        }, noteDuration); // Use the same duration for the loop interval
-
-        // Start muted by default
-        vol.mute = true;
+        }, noteDuration);
 
         // Set BPM for the mantra chanting
         Tone.Transport.bpm.value = 60;
 
-        // Initialize the loop but don't start the transport yet
-        // Transport will be controlled by timer state
+        // Start the loop (but transport won't start until timer runs)
         loop.start(0);
 
-        // Check if timer is already running and start transport if it is
-        const timerState = get(timerStore);
-        if (timerState.isRunning) {
-          Tone.Transport.start();
-        }
+        // Set initial mute state (volume will be controlled by the derived store)
+        vol.volume.value = -Infinity;
 
         update(state => ({ ...state, isInitialized: true }));
       } catch (error) {
@@ -208,46 +171,11 @@ function createSoundStore() {
 
     setVolume(level: number): void {
       if (level < 0 || level > 100) return;
-
-      update(state => {
-        // Get current timer phase to scale volume appropriately
-        const timerState = get(timerStore);
-        const currentPhase = timerState.phases[timerState.currentPhaseIndex];
-        const isEffectivelyMuted = state.isMuted || !timerState.isRunning;
-
-        if (currentPhase) {
-          safeSetVolume(level, currentPhase.volumeLevel, isEffectivelyMuted);
-        } else {
-          safeSetVolume(level, undefined, isEffectivelyMuted);
-        }
-
-        return { ...state, volumeLevel: level };
-      });
+      update(state => ({ ...state, volumeLevel: level }));
     },
 
     toggleMute(): void {
-      update(state => {
-        const newMuted = !state.isMuted;
-        const timerState = get(timerStore);
-        const isEffectivelyMuted = newMuted || !timerState.isRunning;
-
-        // Set volume based on mute state
-        if (timerState.phases[timerState.currentPhaseIndex]) {
-          safeSetVolume(
-            state.volumeLevel,
-            timerState.phases[timerState.currentPhaseIndex].volumeLevel,
-            isEffectivelyMuted
-          );
-        } else {
-          safeSetVolume(state.volumeLevel, undefined, isEffectivelyMuted);
-        }
-
-        return { ...state, isMuted: newMuted };
-      });
-    },
-
-    onMantraChange(callback: (mantra: string) => void): void {
-      mantraChangeCallbacks.push(callback);
+      update(state => ({ ...state, isMuted: !state.isMuted }));
     },
 
     playNotification(): void {
@@ -280,7 +208,7 @@ function createSoundStore() {
       }
     },
 
-    dispose(): void {
+    cleanup(): void {
       if (loop) {
         loop.dispose();
         loop = null;
@@ -300,11 +228,9 @@ function createSoundStore() {
 
       set({
         isInitialized: false,
-        isPlaying: false,
         volumeLevel: 70,
         currentMantra: '',
-        isMuted: true,
-        currentPhase: ''
+        isMuted: true
       });
     }
   };
