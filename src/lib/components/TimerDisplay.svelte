@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { timerStore } from '$lib/stores/timerStore';
 	import { soundStore } from '$lib/stores/soundStore';
 	import ProgressIndicator from './ProgressIndicator.svelte';
@@ -14,13 +14,24 @@
 	let timerId: NodeJS.Timer | undefined;
 	let soundInitialized = false;
 
-	onMount(() => {
-		// Initialize sound store
-		soundStore.initialize().then(() => {
+	onMount(async () => {
+		try {
+			// Initialize sound store first, ensuring mantras are ready
+			await soundStore.initialize();
 			soundInitialized = true;
-		});
+			console.log('Sound system initialized successfully');
+			
+			// Now that sound is initialized, check if timer should be running
+			const timerState = $timerStore;
+			if (timerState.isRunning && !timerId) {
+				timerEndTime = Date.now() + timerState.timeRemaining;
+				updateCountdown();
+			}
+		} catch (error) {
+			console.error('Failed to initialize sound system:', error);
+		}
 
-		// Subscribe to store changes to handle timer start/stop
+		// Subscribe to timer store changes to handle timer start/stop
 		timerStore.subscribe((state) => {
 			if (state.isRunning && !timerId) {
 				timerEndTime = Date.now() + state.timeRemaining;
@@ -29,6 +40,13 @@
 		});
 	});
 
+	onDestroy(() => {
+		// Clean up any timers to prevent memory leaks
+		if (timerId) {
+			clearTimeout(timerId);
+			timerId = undefined;
+		}
+	});
 
 	// Timer countdown function
 	function updateCountdown() {
@@ -44,8 +62,8 @@
 		if (newTimeRemaining > 0 && $timerStore.isRunning) {
 			timerId = setTimeout(updateCountdown, 1000);
 		} else if (newTimeRemaining <= 0) {
-			// Play notification sound at phase change
-			if (soundInitialized) {
+			// Play notification sound at phase change if sound is enabled
+			if (soundInitialized && !$soundStore.isMuted) {
 				soundStore.playNotification();
 			}
 

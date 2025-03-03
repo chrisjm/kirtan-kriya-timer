@@ -42,10 +42,6 @@ function createSoundStore() {
   const resetMantraSequence = (): void => {
     noteIndex = 0;
     mantraSequenceStarted = false;
-    if (loop) {
-      loop.stop();
-      loop.start(0);
-    }
   };
 
   // Create the writable store
@@ -60,7 +56,7 @@ function createSoundStore() {
 
   // Create a derived store that combines timer and sound state
   const combinedState: Readable<SoundState & {
-    shouldPlay: boolean;
+    timerRunning: boolean;
     timerPhase: TimerPhase | null;
   }> = derived(
     [timerStore],
@@ -68,7 +64,7 @@ function createSoundStore() {
       subscribe(soundState => {
         set({
           ...soundState,
-          shouldPlay: $timerStore.isRunning && !soundState.isMuted,
+          timerRunning: $timerStore.isRunning,
           timerPhase: $timerStore.phases[$timerStore.currentPhaseIndex] || null,
           currentPhase: $timerStore.phases[$timerStore.currentPhaseIndex]?.action || ''
         });
@@ -84,25 +80,18 @@ function createSoundStore() {
     }
   };
 
-  // Private audio control methods
-  const pauseAudio = (): void => {
-    if (!vol) return;
-    vol.mute = true;
-    Tone.Transport.pause();
-  };
-
-  const resumeAudio = (): void => {
-    if (!vol) return;
-    Tone.Transport.start();
-    vol.mute = false;
-
-    // Trigger immediate note if not already playing
-    if (synth && Tone.Transport.state !== 'started') {
-      const currentNote = mantraNotes[noteIndex];
-      console.log(`Resuming with mantra: ${currentNote.mantra}, pitch: ${currentNote.pitch}, index: ${noteIndex}`);
-      synth.triggerAttackRelease(currentNote.pitch, '2n'); // Use consistent half note duration
-      notifyMantraChange(currentNote.mantra);
-      noteIndex = (noteIndex + 1) % mantraNotes.length;
+  // Control the Tone.js transport based on timer state
+  const updateTransportState = (timerRunning: boolean): void => {
+    if (timerRunning) {
+      // Start the transport if timer is running
+      if (Tone.Transport.state !== 'started') {
+        Tone.Transport.start();
+      }
+    } else {
+      // Pause the transport if timer is not running
+      if (Tone.Transport.state === 'started') {
+        Tone.Transport.pause();
+      }
     }
   };
   
@@ -129,15 +118,19 @@ function createSoundStore() {
 
   // Subscribe to combined state changes to manage audio
   combinedState.subscribe(state => {
-    if (state.shouldPlay && state.isInitialized) {
-      resumeAudio();
-
-      // Adjust volume based on current phase if available
-      if (state.timerPhase) {
-        safeSetVolume(state.volumeLevel, state.timerPhase.volumeLevel);
-      }
-    } else {
-      pauseAudio();
+    if (!state.isInitialized) return;
+    
+    // First, control the transport based on timer state
+    updateTransportState(state.timerRunning);
+    
+    // Then control mute state based on sound settings
+    if (vol) {
+      vol.mute = state.isMuted || !state.timerRunning;
+    }
+    
+    // Adjust volume based on current phase if available
+    if (state.timerPhase) {
+      safeSetVolume(state.volumeLevel, state.timerPhase.volumeLevel);
     }
   });
 
@@ -173,15 +166,20 @@ function createSoundStore() {
         // Create a loop that plays each mantra note in sequence
         loop = new Tone.Loop((time) => {
           if (synth) {
-            // Get the current mantra note
+            // Always progress through mantras at a steady tempo when
+            // the transport is running (controlled by timer state)
             const currentNote = mantraNotes[noteIndex];
-            console.log(`Playing mantra: ${currentNote.mantra}, pitch: ${currentNote.pitch}, index: ${noteIndex}`);
+            console.log(`Current mantra: ${currentNote.mantra}, pitch: ${currentNote.pitch}, index: ${noteIndex}`);
             
-            // Play the note with consistent duration
-            synth.triggerAttackRelease(currentNote.pitch, noteDuration, time);
+            // Only trigger sound if not muted
+            if (!vol?.mute) {
+              synth.triggerAttackRelease(currentNote.pitch, noteDuration, time);
+            }
+            
+            // Always notify of mantra change regardless of mute state
             notifyMantraChange(currentNote.mantra);
             
-            // Move to the next note in the sequence
+            // Always move to the next note in the sequence
             noteIndex = (noteIndex + 1) % mantraNotes.length;
           }
         }, noteDuration); // Use the same duration for the loop interval
@@ -189,12 +187,18 @@ function createSoundStore() {
         // Start muted by default
         vol.mute = true;
 
-        // Set BPM for the mantra chanting - slightly faster to ensure all mantras are heard
+        // Set BPM for the mantra chanting
         Tone.Transport.bpm.value = 60;
 
-        // Start the loop and transport immediately
+        // Initialize the loop but don't start the transport yet
+        // Transport will be controlled by timer state
         loop.start(0);
-        Tone.Transport.start();
+        
+        // Check if timer is already running and start transport if it is
+        const timerState = get(timerStore);
+        if (timerState.isRunning) {
+          Tone.Transport.start();
+        }
 
         update(state => ({ ...state, isInitialized: true }));
       } catch (error) {
@@ -224,17 +228,15 @@ function createSoundStore() {
     toggleMute(): void {
       update(state => {
         const newMuted = !state.isMuted;
-        if (newMuted) {
-          pauseAudio();
-        } else {
-          // When unmuting, reset the mantra sequence to start from the beginning
-          resetMantraSequence();
-          
-          const timerState = get(timerStore);
-          if (timerState.isRunning) {
-            resumeAudio();
-          }
+        
+        if (vol) {
+          // Simply control the volume mute state
+          vol.mute = newMuted || !get(timerStore).isRunning;
         }
+        
+        // Only reset mantra sequence when unmuting if user explicitly requests it
+        // This preserves the continuous flow of mantras even when sound is muted
+        
         return { ...state, isMuted: newMuted };
       });
     },

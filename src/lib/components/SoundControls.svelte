@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { soundStore } from '$lib/stores/soundStore';
+	import { timerStore } from '$lib/stores/timerStore';
 	let isInitializing = false;
 
 	// Initialize sound when enabling
@@ -34,28 +35,28 @@
 				class="toggle toggle-primary"
 				checked={!$soundStore.isMuted}
 				on:click={toggleSound}
+				title="Toggle sound on/off"
 			/>
 		</label>
-		{#if !$soundStore.isMuted}
-			<label class="label flex-1 flex items-center gap-2">
-				<span class="label-text">Volume: {$soundStore.volumeLevel}</span>
-				<input
-					type="range"
-					min="0"
-					max="100"
-					value={$soundStore.volumeLevel}
-					class="range"
-					step="1"
-					on:input={(e) => {
-						if (e.target instanceof HTMLInputElement) {
-							soundStore.setVolume(parseInt(e.target.value));
-						}
-					}}
-				/>
-			</label>
-		{/if}
+		<label class="label flex-1 flex items-center gap-2">
+			<span class="label-text">Volume: {$soundStore.volumeLevel}</span>
+			<input
+				type="range"
+				min="0"
+				max="100"
+				value={$soundStore.volumeLevel}
+				class="range"
+				step="1"
+				disabled={$soundStore.isMuted}
+				on:input={(e) => {
+					if (e.target instanceof HTMLInputElement) {
+						soundStore.setVolume(parseInt(e.target.value));
+					}
+				}}
+			/>
+		</label>
 	</div>
-	{#if !$soundStore.isMuted && $soundStore.currentMantra}
+	{#if $soundStore.currentMantra && $timerStore.isRunning}
 		<div class="text-sm text-center mt-2 text-base-content/70">
 			Current Mantra: {$soundStore.currentMantra}
 		</div>
