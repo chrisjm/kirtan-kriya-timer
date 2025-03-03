@@ -35,7 +35,18 @@ function createSoundStore() {
   let loop: Tone.Loop | null = null;
   let vol: Tone.Volume | null = null;
   let noteIndex = 0;
+  let mantraSequenceStarted = false;
   const mantraChangeCallbacks: ((mantra: string) => void)[] = [];
+  
+  // Helper to reset the mantra sequence
+  const resetMantraSequence = (): void => {
+    noteIndex = 0;
+    mantraSequenceStarted = false;
+    if (loop) {
+      loop.stop();
+      loop.start(0);
+    }
+  };
 
   // Create the writable store
   const { subscribe, update, set } = writable<SoundState>({
@@ -87,8 +98,10 @@ function createSoundStore() {
 
     // Trigger immediate note if not already playing
     if (synth && Tone.Transport.state !== 'started') {
-      synth.triggerAttackRelease(mantraNotes[noteIndex].pitch, '2n');
-      notifyMantraChange(mantraNotes[noteIndex].mantra);
+      const currentNote = mantraNotes[noteIndex];
+      console.log(`Resuming with mantra: ${currentNote.mantra}, pitch: ${currentNote.pitch}, index: ${noteIndex}`);
+      synth.triggerAttackRelease(currentNote.pitch, '2n'); // Use consistent half note duration
+      notifyMantraChange(currentNote.mantra);
       noteIndex = (noteIndex + 1) % mantraNotes.length;
     }
   };
@@ -151,19 +164,33 @@ function createSoundStore() {
           }
         }).connect(vol);
 
+        // Log initial state for debugging
+        console.log('Initializing mantra sequence with notes:', mantraNotes);
+        
+        // Define note duration for consistency
+        const noteDuration = '2n'; // half note
+        
+        // Create a loop that plays each mantra note in sequence
         loop = new Tone.Loop((time) => {
           if (synth) {
-            synth.triggerAttackRelease(mantraNotes[noteIndex].pitch, '2n', time);
-            notifyMantraChange(mantraNotes[noteIndex].mantra);
+            // Get the current mantra note
+            const currentNote = mantraNotes[noteIndex];
+            console.log(`Playing mantra: ${currentNote.mantra}, pitch: ${currentNote.pitch}, index: ${noteIndex}`);
+            
+            // Play the note with consistent duration
+            synth.triggerAttackRelease(currentNote.pitch, noteDuration, time);
+            notifyMantraChange(currentNote.mantra);
+            
+            // Move to the next note in the sequence
             noteIndex = (noteIndex + 1) % mantraNotes.length;
           }
-        }, '2n');
+        }, noteDuration); // Use the same duration for the loop interval
 
         // Start muted by default
         vol.mute = true;
 
-        // Set BPM for the mantra chanting
-        Tone.Transport.bpm.value = 50;
+        // Set BPM for the mantra chanting - slightly faster to ensure all mantras are heard
+        Tone.Transport.bpm.value = 60;
 
         // Start the loop and transport immediately
         loop.start(0);
@@ -200,6 +227,9 @@ function createSoundStore() {
         if (newMuted) {
           pauseAudio();
         } else {
+          // When unmuting, reset the mantra sequence to start from the beginning
+          resetMantraSequence();
+          
           const timerState = get(timerStore);
           if (timerState.isRunning) {
             resumeAudio();
@@ -250,6 +280,7 @@ function createSoundStore() {
       }
 
       noteIndex = 0;
+      mantraSequenceStarted = false;
 
       set({
         isInitialized: false,
