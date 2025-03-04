@@ -1,5 +1,5 @@
-import { writable, get, derived } from 'svelte/store';
-import { timerStore } from './timerStore';
+import { writable, get } from 'svelte/store';
+import { timerStore, TimerEventType, type TimerEvent } from './timerStore';
 import * as Tone from 'tone';
 
 // The four syllables of the Kirtan Kriya mantra with corresponding notes
@@ -25,6 +25,8 @@ export interface SoundState {
   volumeLevel: number;
   currentMantra: string;
   isMuted: boolean;
+  isTimerRunning: boolean;
+  currentPhaseVolumeLevel?: number;
 }
 
 function createSoundStore() {
@@ -33,13 +35,15 @@ function createSoundStore() {
   let loop: Tone.Loop | null = null;
   let vol: Tone.Volume | null = null;
   let noteIndex = 0;
+  let timerEventUnsubscribers: Array<() => void> = [];
 
   // Create the writable store with initial state
   const { subscribe, update, set } = writable<SoundState>({
     isInitialized: false,
     volumeLevel: 70,
     currentMantra: '',
-    isMuted: true
+    isMuted: true,
+    isTimerRunning: false
   });
 
   // Helper to notify mantra change
@@ -68,26 +72,13 @@ function createSoundStore() {
     }
   };
 
-  // Create a derived store to handle sound playback based on timer state
-  const soundPlaybackState = derived(
-    [timerStore, { subscribe }],
-    ([$timerStore, $soundStore]) => {
-      return {
-        timerRunning: $timerStore.isRunning,
-        currentPhase: $timerStore.phases[$timerStore.currentPhaseIndex] || null,
-        isMuted: $soundStore.isMuted,
-        volumeLevel: $soundStore.volumeLevel,
-        isInitialized: $soundStore.isInitialized
-      };
-    }
-  );
-
-  // Subscribe to the derived state to control sound playback
-  soundPlaybackState.subscribe(state => {
+  // Helper to update sound playback based on current state
+  const updateSoundPlayback = () => {
+    const state = get({ subscribe });
     if (!state.isInitialized || !vol) return;
 
     // Control transport based on timer state
-    if (state.timerRunning) {
+    if (state.isTimerRunning) {
       if (Tone.Transport.state !== 'started') {
         Tone.Transport.start();
       }
@@ -98,14 +89,45 @@ function createSoundStore() {
     }
 
     // Handle volume and muting
-    if (state.isMuted || !state.timerRunning) {
+    if (state.isMuted || !state.isTimerRunning) {
       vol.volume.value = -Infinity; // Effectively mute
-    } else if (state.currentPhase) {
-      safeSetVolume(state.volumeLevel, state.currentPhase.volumeLevel);
+    } else if (state.currentPhaseVolumeLevel !== undefined) {
+      safeSetVolume(state.volumeLevel, state.currentPhaseVolumeLevel);
     } else {
       safeSetVolume(state.volumeLevel);
     }
-  });
+  };
+
+  // Timer event handlers
+  const handleTimerStart = (event: TimerEvent) => {
+    if (event.phase) {
+      update(state => ({
+        ...state,
+        isTimerRunning: true,
+        currentPhaseVolumeLevel: event.phase.volumeLevel
+      }));
+    } else {
+      update(state => ({ ...state, isTimerRunning: true }));
+    }
+    updateSoundPlayback();
+  };
+
+  const handleTimerPause = () => {
+    update(state => ({ ...state, isTimerRunning: false }));
+    updateSoundPlayback();
+  };
+
+  const handleTimerReset = () => {
+    update(state => ({ ...state, isTimerRunning: false }));
+    updateSoundPlayback();
+  };
+
+  const handlePhaseChange = (event: TimerEvent) => {
+    if (event.phase) {
+      update(state => ({ ...state, currentPhaseVolumeLevel: event.phase.volumeLevel }));
+      updateSoundPlayback();
+    }
+  };
 
   // Public store API
   return {
@@ -159,10 +181,36 @@ function createSoundStore() {
         // Start the loop (but transport won't start until timer runs)
         loop.start(0);
 
-        // Set initial mute state (volume will be controlled by the derived store)
+        // Set initial mute state
         vol.volume.value = -Infinity;
 
-        update(state => ({ ...state, isInitialized: true }));
+        // Subscribe to timer events
+        timerEventUnsubscribers = [
+          timerStore.addEventListener(TimerEventType.START, handleTimerStart),
+          timerStore.addEventListener(TimerEventType.PAUSE, handleTimerPause),
+          timerStore.addEventListener(TimerEventType.RESET, handleTimerReset),
+          timerStore.addEventListener(TimerEventType.PHASE_CHANGE, handlePhaseChange)
+        ];
+
+        // Initialize with current timer state
+        const timerState = get(timerStore);
+        if (timerState.isRunning) {
+          const currentPhase = timerStore.getCurrentPhase();
+          update(state => ({
+            ...state,
+            isInitialized: true,
+            isTimerRunning: timerState.isRunning,
+            currentPhaseVolumeLevel: currentPhase?.volumeLevel
+          }));
+        } else {
+          update(state => ({
+            ...state,
+            isInitialized: true,
+            isTimerRunning: false
+          }));
+        }
+
+        updateSoundPlayback();
       } catch (error) {
         console.error('Failed to initialize audio:', error);
         throw error;
@@ -172,25 +220,26 @@ function createSoundStore() {
     setVolume(level: number): void {
       if (level < 0 || level > 100) return;
       update(state => ({ ...state, volumeLevel: level }));
+      updateSoundPlayback();
     },
 
     toggleMute(): void {
       update(state => ({ ...state, isMuted: !state.isMuted }));
+      updateSoundPlayback();
     },
 
     playNotification(): void {
       const state = get({ subscribe });
-      if (!state.isInitialized || state.isMuted) return;
+      const timerState = get(timerStore);
+      if (!state.isInitialized || state.isMuted || !timerState.isRunning) return;
 
       try {
         const notifySynth = new Tone.Synth().toDestination();
-        const timerState = get(timerStore);
-        const currentPhase = timerState.phases[timerState.currentPhaseIndex];
 
         // Scale volume by phase if available
         let volumeLevel = state.volumeLevel;
-        if (currentPhase) {
-          volumeLevel = (volumeLevel * currentPhase.volumeLevel) / 100;
+        if (state.currentPhaseVolumeLevel !== undefined) {
+          volumeLevel = (volumeLevel * state.currentPhaseVolumeLevel) / 100;
         }
 
         const volumeDb = volumeToDecibels(volumeLevel);
@@ -207,32 +256,6 @@ function createSoundStore() {
         console.error('Error playing notification:', error);
       }
     },
-
-    cleanup(): void {
-      if (loop) {
-        loop.dispose();
-        loop = null;
-      }
-
-      if (synth) {
-        synth.dispose();
-        synth = null;
-      }
-
-      if (vol) {
-        vol.dispose();
-        vol = null;
-      }
-
-      noteIndex = 0;
-
-      set({
-        isInitialized: false,
-        volumeLevel: 70,
-        currentMantra: '',
-        isMuted: true
-      });
-    }
   };
 }
 

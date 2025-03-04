@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { soundStore } from '$lib/stores/soundStore';
-	import { timerStore } from '$lib/stores/timerStore';
 	let isInitializing = false;
 
 	// Initialize sound when enabling
@@ -56,7 +55,7 @@
 			/>
 		</label>
 	</div>
-	{#if $soundStore.currentMantra && $timerStore.isRunning}
+	{#if $soundStore.currentMantra && $soundStore.isTimerRunning}
 		<div class="text-sm text-center mt-2 text-base-content/70">
 			Current Mantra: {$soundStore.currentMantra}
 		</div>

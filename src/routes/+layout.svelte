@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 </script>
 
 <svelte:head>
@@ -15,4 +16,5 @@
 		<ThemeToggle />
 	</div>
 	<slot />
+	<Footer />
 </div>

@@ -20,7 +20,7 @@
 			await soundStore.initialize();
 			soundInitialized = true;
 			console.log('Sound system initialized successfully');
-			
+
 			// Now that sound is initialized, check if timer should be running
 			const timerState = $timerStore;
 			if (timerState.isRunning && !timerId) {
@@ -62,11 +62,6 @@
 		if (newTimeRemaining > 0 && $timerStore.isRunning) {
 			timerId = setTimeout(updateCountdown, 1000);
 		} else if (newTimeRemaining <= 0) {
-			// Play notification sound at phase change if sound is enabled
-			if (soundInitialized && !$soundStore.isMuted) {
-				soundStore.playNotification();
-			}
-
 			// Check if we're at the last phase
 			if ($timerStore.currentPhaseIndex >= $timerStore.phases.length - 1) {
 				pauseTimer();

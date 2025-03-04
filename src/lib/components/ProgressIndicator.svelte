@@ -47,20 +47,6 @@
 </script>
 
 <div class="w-full my-4 space-y-2">
-	<!-- Phase info tooltip -->
-	{#if hoveredPhase !== null}
-		{@const phase = $timerStore.phases[hoveredPhase]}
-		<div
-			class="text-sm text-center font-medium text-gray-700 dark:text-gray-300 h-6 transition-opacity duration-200"
-			role="status"
-		>
-			{phase.action} • {phase.durationMinutes}
-			{phase.durationMinutes === 1 ? 'minute' : 'minutes'}
-		</div>
-	{:else}
-		<div class="h-6" aria-hidden="true" />
-	{/if}
-
 	<!-- Interactive phase indicators -->
 	<div
 		class="w-full h-10 flex rounded-lg overflow-hidden"
@@ -100,6 +86,20 @@
 			</button>
 		{/each}
 	</div>
+
+	<!-- Phase info tooltip -->
+	{#if hoveredPhase !== null}
+		{@const phase = $timerStore.phases[hoveredPhase]}
+		<div
+			class="text-sm text-center font-medium text-gray-700 dark:text-gray-300 h-6 transition-opacity duration-200"
+			role="status"
+		>
+			{phase.action} • {phase.durationMinutes}
+			{phase.durationMinutes === 1 ? 'minute' : 'minutes'}
+		</div>
+	{:else}
+		<div class="h-6" aria-hidden="true" />
+	{/if}
 
 	<!-- Overall progress bar -->
 	<div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
