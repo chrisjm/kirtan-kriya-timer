@@ -1,5 +1,5 @@
 import { writable, get } from 'svelte/store';
-import { timerStore } from './timerStore';
+import { TimerStatus, timerStore } from './timerStore';
 import { getSoundSettings, setSoundSettings } from '../services/storageService';
 import * as Tone from 'tone';
 
@@ -131,7 +131,7 @@ function createSoundStore() {
     update(state => {
       const newState = {
         ...state,
-        isTimerRunning: $timer.isRunning,
+        isTimerRunning: $timer.status === TimerStatus.RUNNING,
         currentPhaseVolumeLevel: $timer.phases[$timer.currentPhaseIndex].volumeLevel
       };
       // Call updateSoundPlayback asynchronously to handle audio context start
@@ -181,9 +181,9 @@ function createSoundStore() {
         // Create a loop that plays each mantra note in sequence with proper timing
         loop = new Tone.Loop((time) => {
           if (!synth || !vol || !isStarted) return;
-          
+
           const currentNote = mantraNotes[noteIndex];
-          
+
           // Debug timing information
           log.tone({
             loop: {

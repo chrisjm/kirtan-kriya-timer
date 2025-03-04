@@ -1,25 +1,31 @@
 <script lang="ts">
-	import { timerStore } from '$lib/stores/timerStore';
+	import { timerStore, TimerStatus } from '$lib/stores/timerStore';
 
-	function startTimer() {
+	function startTimer(): void {
 		timerStore.startTimer();
 	}
 
-	function pauseTimer() {
+	function pauseTimer(): void {
 		timerStore.pauseTimer();
 	}
 
-	function resetTimer() {
+	function resetTimer(): void {
 		timerStore.resetTimer();
 	}
+
+	// Compute if buttons should be disabled based on current status
+	$: isRunning = $timerStore.status === TimerStatus.RUNNING;
+	$: isTransitioning = $timerStore.status === TimerStatus.TRANSITIONING;
+	$: isResetDisabled = isRunning || isTransitioning;
 </script>
 
 <div class="my-4 flex justify-center gap-2">
-	{#if $timerStore.isRunning}
+	{#if isRunning}
 		<button
 			class="inline-flex items-center px-4 py-2 rounded-lg bg-warning text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			on:click={pauseTimer}
-			disabled={!$timerStore.isRunning}
+			disabled={!isRunning || isTransitioning}
+			title="Pause the meditation timer"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -41,7 +47,8 @@
 		<button
 			class="inline-flex items-center px-4 py-2 rounded-lg bg-success text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			on:click={startTimer}
-			disabled={$timerStore.isRunning}
+			disabled={isRunning || isTransitioning}
+			title="Start the meditation timer"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -69,7 +76,8 @@
 	<button
 		class="inline-flex items-center px-4 py-2 rounded-lg bg-error text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 		on:click={resetTimer}
-		disabled={$timerStore.isRunning}
+		disabled={isResetDisabled}
+		title="Reset the meditation timer"
 	>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
