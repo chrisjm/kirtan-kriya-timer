@@ -2,11 +2,34 @@ import { writable, get } from 'svelte/store';
 import { getCurrentPhaseIndex, setCurrentPhaseIndex } from '../services/storageService';
 
 // Enhanced timer state management with explicit states
+// Timer state machine states
 export enum TimerStatus {
-  IDLE = 'idle',
-  RUNNING = 'running',
-  PAUSED = 'paused',
-  TRANSITIONING = 'transitioning'
+  IDLE = 'idle',      // Initial state or reset state
+  RUNNING = 'running', // Timer actively counting down
+  PAUSED = 'paused'   // Timer temporarily stopped
+}
+
+// State machine transitions
+type TimerTransition = {
+  from: TimerStatus;
+  to: TimerStatus;
+  action: 'START' | 'PAUSE' | 'RESET' | 'COMPLETE_PHASE' | 'COMPLETE_CYCLE';
+};
+
+// Valid state transitions
+const validTransitions: TimerTransition[] = [
+  { from: TimerStatus.IDLE, to: TimerStatus.RUNNING, action: 'START' },
+  { from: TimerStatus.RUNNING, to: TimerStatus.PAUSED, action: 'PAUSE' },
+  { from: TimerStatus.PAUSED, to: TimerStatus.RUNNING, action: 'START' },
+  { from: TimerStatus.RUNNING, to: TimerStatus.RUNNING, action: 'COMPLETE_PHASE' },
+  { from: TimerStatus.RUNNING, to: TimerStatus.IDLE, action: 'COMPLETE_CYCLE' },
+  { from: TimerStatus.RUNNING, to: TimerStatus.IDLE, action: 'RESET' },
+  { from: TimerStatus.PAUSED, to: TimerStatus.IDLE, action: 'RESET' }
+];
+
+// Validate state transition
+function isValidTransition(from: TimerStatus, to: TimerStatus, action: TimerTransition['action']): boolean {
+  return validTransitions.some(t => t.from === from && t.to === to && t.action === action);
 }
 
 // Event types for timer state changes
@@ -226,11 +249,11 @@ const createTimerStore = () => {
       return { ...state, timeRemaining };
     }),
 
-    // Mark current phase as completed and move to next
+    // Mark current phase as completed and handle phase transition
     completeCurrentPhase: () => update(state => {
-      // Only allow completion if we're in a valid state
-      if (state.status !== TimerStatus.RUNNING && state.status !== TimerStatus.PAUSED) {
-        debug('Cannot complete phase in current state', { currentStatus: state.status });
+      // Only allow completion if we're running
+      if (state.status !== TimerStatus.RUNNING) {
+        debug('Cannot complete phase when not running', { currentStatus: state.status });
         return state;
       }
 
@@ -258,54 +281,42 @@ const createTimerStore = () => {
         isLastPhase
       });
 
-      // If this is the last phase, emit meditation complete
       if (isLastPhase) {
+        // Complete the meditation cycle
         emitEvent({
           type: TimerEventType.MEDITATION_COMPLETE,
           timerId: state.activeTimerId
         });
-      }
 
-      return {
-        ...state,
-        phases: updatedPhases,
-        status: TimerStatus.TRANSITIONING,
-        timeRemaining: 0 // Clear remaining time as phase is complete
-      };
-    }),
+        // Validate and perform state transition
+        if (!isValidTransition(state.status, TimerStatus.IDLE, 'COMPLETE_CYCLE')) {
+          debug('Invalid state transition', { from: state.status, to: TimerStatus.IDLE });
+          return state;
+        }
 
-    // Enhanced next phase with better state transitions
-    nextPhase: () => update(state => {
-      const nextIndex = state.currentPhaseIndex >= state.phases.length - 1 ? 0 : state.currentPhaseIndex + 1;
-      const nextPhase = state.phases[nextIndex];
-      const newTimerId = generateTimerId(nextIndex);
-
-      setCurrentPhaseIndex(nextIndex);
-
-      // Handle cycle completion
-      const isCycleComplete = nextIndex === 0;
-
-      // Determine the next status based on current state and cycle completion
-      let nextStatus: TimerStatus;
-      if (isCycleComplete) {
-        nextStatus = TimerStatus.IDLE;
-      } else if (state.status === TimerStatus.TRANSITIONING) {
-        // If we were transitioning, go back to RUNNING state
-        nextStatus = TimerStatus.RUNNING;
+        // Reset to initial state
+        return {
+          ...state,
+          phases: updatedPhases.map(phase => ({ ...phase, completed: false })),
+          status: TimerStatus.IDLE,
+          currentPhaseIndex: 0,
+          timeRemaining: state.phases[0].durationMinutes * 60 * 1000,
+          activeTimerId: undefined
+        };
       } else {
-        // Otherwise maintain current status
-        nextStatus = state.status;
-      }
+        // Move to next phase
+        const nextIndex = state.currentPhaseIndex + 1;
+        const nextPhase = state.phases[nextIndex];
+        const newTimerId = generateTimerId(nextIndex);
 
-      if (isCycleComplete) {
-        // Emit meditation complete event at end of cycle
-        emitEvent({
-          type: TimerEventType.MEDITATION_COMPLETE,
-          timerId: newTimerId
-        });
+        // Validate and perform state transition
+        if (!isValidTransition(state.status, TimerStatus.RUNNING, 'COMPLETE_PHASE')) {
+          debug('Invalid state transition', { from: state.status, to: TimerStatus.RUNNING });
+          return state;
+        }
 
-        debug('Meditation cycle completed');
-      } else {
+        setCurrentPhaseIndex(nextIndex);
+
         // Emit phase change event
         emitEvent({
           type: TimerEventType.PHASE_CHANGE,
@@ -314,23 +325,18 @@ const createTimerStore = () => {
           timerId: newTimerId
         });
 
-        debug('Moving to next phase', {
-          fromPhase: state.currentPhaseIndex,
-          toPhase: nextIndex,
-          newTimerId,
-          nextStatus
-        });
+        return {
+          ...state,
+          phases: updatedPhases,
+          status: TimerStatus.RUNNING,
+          currentPhaseIndex: nextIndex,
+          timeRemaining: nextPhase.durationMinutes * 60 * 1000,
+          activeTimerId: newTimerId
+        };
       }
-
-      // Update state with new status
-      return {
-        ...state,
-        status: nextStatus,
-        currentPhaseIndex: nextIndex,
-        timeRemaining: nextPhase.durationMinutes * 60 * 1000,
-        activeTimerId: newTimerId
-      };
     }),
+
+
 
     // Enhanced phase selection with state validation
     selectPhase: (index: number) => update(state => {
@@ -339,11 +345,7 @@ const createTimerStore = () => {
         return state;
       }
 
-      // Don't allow phase selection during transitions
-      if (state.status === TimerStatus.TRANSITIONING) {
-        debug('Cannot select phase during transition, ignoring selection');
-        return state;
-      }
+
 
       const selectedPhase = state.phases[index];
       const wasRunning = state.status === TimerStatus.RUNNING;

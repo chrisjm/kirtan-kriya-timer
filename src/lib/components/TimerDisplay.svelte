@@ -126,13 +126,9 @@
 
 	// Timer countdown function with specific timer ID
 	function updateCountdown(timerId: string): void {
-		// Don't update if the timer is no longer active or we're transitioning
-		if (
-			timerId !== activeTimerId ||
-			$timerStore.status !== TimerStatus.RUNNING ||
-			$timerStore.status === TimerStatus.TRANSITIONING
-		) {
-			debug('Timer not active or transitioning, skipping update', {
+		// Don't update if the timer is no longer active or not running
+		if (timerId !== activeTimerId || $timerStore.status !== TimerStatus.RUNNING) {
+			debug('Timer not active or not running, skipping update', {
 				timerId,
 				status: $timerStore.status
 			});
@@ -167,34 +163,9 @@
 			clearTimerById(timerId);
 
 			// Mark the current phase as completed
+			// This will automatically handle phase transitions
 			timerStore.completeCurrentPhase();
-
-			// Wait a short moment before transitioning to next phase
-			setTimeout(() => {
-				// Check if this was the last phase
-				if ($timerStore.currentPhaseIndex >= $timerStore.phases.length - 1) {
-					debug('Last phase complete, meditation cycle finished');
-					// The store will handle resetting to IDLE state
-				} else {
-					debug('Moving to next phase');
-					nextPhase();
-				}
-			}, 250); // Short delay for smooth transition
 		}
-	}
-
-	function nextPhase(): void {
-		debug('Moving to next phase', {
-			currentPhase: $timerStore.currentPhaseIndex,
-			activeTimerId
-		});
-
-		// Request the store to move to the next phase
-		// This will generate a new timer ID and update the state
-		timerStore.nextPhase();
-
-		// The store subscription will handle activating the new timer
-		// as it will detect the new active timer ID
 	}
 </script>
 
@@ -205,9 +176,6 @@
 	<!-- Timer Display -->
 	<section class="text-center p-6">
 		<!-- Timer status indicator -->
-		{#if $timerStore.status === TimerStatus.TRANSITIONING}
-			<div class="text-sm text-primary mb-1">Transitioning to next phase...</div>
-		{/if}
 
 		<!-- Time remaining display -->
 		<div class="font-mono text-5xl tabular-nums tracking-wider">

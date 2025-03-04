@@ -15,8 +15,7 @@
 
 	// Compute if buttons should be disabled based on current status
 	$: isRunning = $timerStore.status === TimerStatus.RUNNING;
-	$: isTransitioning = $timerStore.status === TimerStatus.TRANSITIONING;
-	$: isResetDisabled = isRunning || isTransitioning;
+	$: isResetDisabled = isRunning;
 </script>
 
 <div class="my-4 flex justify-center gap-2">
@@ -24,7 +23,7 @@
 		<button
 			class="inline-flex items-center px-4 py-2 rounded-lg bg-warning text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			on:click={pauseTimer}
-			disabled={!isRunning || isTransitioning}
+			disabled={!isRunning}
 			title="Pause the meditation timer"
 		>
 			<svg
@@ -47,7 +46,7 @@
 		<button
 			class="inline-flex items-center px-4 py-2 rounded-lg bg-success text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			on:click={startTimer}
-			disabled={isRunning || isTransitioning}
+			disabled={isRunning}
 			title="Start the meditation timer"
 		>
 			<svg
