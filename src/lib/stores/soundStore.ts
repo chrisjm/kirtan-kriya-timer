@@ -145,13 +145,18 @@ function createSoundStore() {
         const noteDuration = '2n'; // half note
 
         // Create a loop that plays each mantra note in sequence
-        loop = new Tone.Loop((time) => {
+        let lastNoteTime = 0;
+        loop = new Tone.Loop(() => {
           if (synth && vol) {
             const currentNote = mantraNotes[noteIndex];
+            const currentTime = Tone.now();
+
+            // Ensure we're scheduling the next note after the last one
+            const scheduleTime = Math.max(currentTime, lastNoteTime + 0.1);
 
             // Only trigger sound if volume is not at -Infinity (effectively muted)
             if (vol.volume.value > -Infinity) {
-              synth.triggerAttackRelease(currentNote.pitch, noteDuration, time);
+              synth.triggerAttackRelease(currentNote.pitch, noteDuration, scheduleTime);
             }
 
             // Always update the current mantra in the store
@@ -159,6 +164,7 @@ function createSoundStore() {
 
             // Always move to the next note in the sequence
             noteIndex = (noteIndex + 1) % mantraNotes.length;
+            lastNoteTime = scheduleTime;
           }
         }, noteDuration);
 
