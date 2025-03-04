@@ -1,3 +1,5 @@
+// NOTE: not used, but keep for prosperity until functionality is complete
+
 import * as Tone from 'tone';
 
 export interface MantraNote {
@@ -76,7 +78,7 @@ export class SoundManager {
           release: 0.8
         }
       }).connect(this.vol);
-      
+
       this.loop = new Tone.Loop((time) => {
         if (this.synth) {
           this.synth.triggerAttackRelease(mantraNotes[this.noteIndex].pitch, '2n', time);
@@ -84,14 +86,18 @@ export class SoundManager {
           this.notifyMantraChange();
           this.noteIndex = (this.noteIndex + 1) % mantraNotes.length;
         }
-      }, '2n').start(0);
-      
+      }, '2n');
+
       // Start muted by default
       this.vol.mute = true;
       this._isInitialized = true;
-      
+
       // Set BPM for the mantra chanting
       Tone.Transport.bpm.value = 50;
+
+      // Start the loop and transport immediately
+      this.loop.start(0);
+      Tone.Transport.start();
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       throw error;
@@ -103,11 +109,10 @@ export class SoundManager {
       console.warn('Sound not initialized. Call initialize() first.');
       return;
     }
-    
+
     if (this.vol) {
       this.vol.mute = false;
     }
-    
     Tone.Transport.start();
   }
 
@@ -118,20 +123,39 @@ export class SoundManager {
   }
 
   pause(): void {
+    if (!this._isInitialized) return;
+
+    if (this.vol) {
+      this.vol.mute = true;
+    }
     Tone.Transport.pause();
   }
 
   resume(): void {
+    if (!this._isInitialized) return;
+
+    // Ensure transport is running and unmute
     Tone.Transport.start();
+    if (this.vol) {
+      this.vol.mute = false;
+    }
+
+    // Trigger immediate note if not already playing
+    if (this.synth && !Tone.Transport.state) {
+      this.synth.triggerAttackRelease(mantraNotes[this.noteIndex].pitch, '2n');
+      this._currentMantra = mantraNotes[this.noteIndex].mantra;
+      this.notifyMantraChange();
+      this.noteIndex = (this.noteIndex + 1) % mantraNotes.length;
+    }
   }
 
   // Play a notification sound between phases
   async playNotification(): Promise<void> {
     if (!this._isInitialized) return;
-    
+
     const notifySynth = new Tone.Synth().toDestination();
     notifySynth.volume.value = volumeToDecibels(this._volumeLevel);
-    
+
     // Play a simple notification melody
     const now = Tone.now();
     notifySynth.triggerAttackRelease('G4', '8n', now);
@@ -145,17 +169,17 @@ export class SoundManager {
       this.loop.dispose();
       this.loop = null;
     }
-    
+
     if (this.synth) {
       this.synth.dispose();
       this.synth = null;
     }
-    
+
     if (this.vol) {
       this.vol.dispose();
       this.vol = null;
     }
-    
+
     this._isInitialized = false;
     this.noteIndex = 0;
     this.mantraChangeCallbacks = [];
