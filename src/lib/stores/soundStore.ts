@@ -135,29 +135,33 @@ function createSoundStore() {
     subscribe,
 
     async initialize(): Promise<void> {
-      if (get({ subscribe }).isInitialized) return;
+      // Prevent multiple initializations
+      const state = get({ subscribe });
+      if (state.isInitialized || synth || vol || loop) {
+        log.init('Sound system already initialized');
+        return;
+      }
 
       try {
         log.init('Starting Tone.js initialization');
         log.init('Tone.js context state:', Tone.context.state);
-        log.init('Tone.js current time:', Tone.now());
         
         await Tone.start();
         log.init('Tone.js started successfully');
         log.init('Post-start context state:', Tone.context.state);
 
         // Initialize volume control
-        const initialVolume = volumeToDecibels(get({ subscribe }).volumeLevel);
+        const initialVolume = volumeToDecibels(state.volumeLevel);
         vol = new Tone.Volume(initialVolume !== null ? initialVolume : -10).toDestination();
 
         // Initialize synthesizer
         synth = new Tone.Synth({
           oscillator: { type: 'sine' },
           envelope: {
-            attack: 0.2,
-            decay: 0.5,
-            sustain: 0.8,
-            release: 0.8
+            attack: 0.1,  // Slightly faster attack
+            decay: 0.2,   // Shorter decay
+            sustain: 0.6, // Lower sustain level
+            release: 0.5  // Quicker release
           }
         }).connect(vol);
 
@@ -165,34 +169,26 @@ function createSoundStore() {
         const noteDuration = '2n'; // half note
 
         // Create a loop that plays each mantra note in sequence
-        let lastNoteTime = 0;
-        let loopStartTime = 0;
-        loop = new Tone.Loop(() => {
+        loop = new Tone.Loop((time) => {
           if (synth && vol) {
             const currentNote = mantraNotes[noteIndex];
-            const currentTime = Tone.now();
-            const transportTime = Tone.Transport.seconds;
             
             // Debug timing information
             log.tone({
               loop: {
-                iteration: Math.floor((currentTime - loopStartTime) / Tone.Time(noteDuration).toSeconds()),
-                currentTime,
-                transportTime,
-                lastNoteTime,
-                timeSinceLastNote: currentTime - lastNoteTime,
+                time,
+                transportTime: Tone.Transport.seconds,
                 bpm: Tone.Transport.bpm.value,
-                state: Tone.Transport.state
+                state: Tone.Transport.state,
+                nextNote: currentNote.mantra
               }
             });
 
-            // Ensure we're scheduling the next note after the last one
-            const scheduleTime = Math.max(currentTime, lastNoteTime + 0.1);
-
             // Only trigger sound if volume is not at -Infinity (effectively muted)
             if (vol.volume.value > -Infinity) {
-              log.tone(`Scheduling note ${currentNote.mantra} at ${scheduleTime}, delta: ${scheduleTime - currentTime}`);
-              synth.triggerAttackRelease(currentNote.pitch, noteDuration, scheduleTime);
+              // Schedule the note using the time parameter from the loop
+              log.tone(`Scheduling note ${currentNote.mantra} at ${time}`);
+              synth.triggerAttackRelease(currentNote.pitch, noteDuration, time);
             }
 
             // Always update the current mantra in the store
@@ -200,7 +196,6 @@ function createSoundStore() {
 
             // Always move to the next note in the sequence
             noteIndex = (noteIndex + 1) % mantraNotes.length;
-            lastNoteTime = scheduleTime;
           }
         }, noteDuration);
 
@@ -209,9 +204,8 @@ function createSoundStore() {
         log.init('Transport BPM set to:', Tone.Transport.bpm.value);
 
         // Start the loop (but transport won't start until timer runs)
-        loopStartTime = Tone.now();
         loop.start(0);
-        log.init('Loop started at:', loopStartTime);
+        log.init('Loop started');
 
         // Set initial mute state
         vol.volume.value = -Infinity;
