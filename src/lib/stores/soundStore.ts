@@ -3,6 +3,15 @@ import { timerStore } from './timerStore';
 import { getSoundSettings, setSoundSettings } from '../services/storageService';
 import * as Tone from 'tone';
 
+// Debug logging utility
+const DEBUG = true;
+const log = {
+  init: (...args: unknown[]) => DEBUG && console.log('[SoundStore Init]', ...args),
+  tone: (...args: unknown[]) => DEBUG && console.log('[Tone Timing]', ...args),
+  state: (...args: unknown[]) => DEBUG && console.log('[SoundStore State]', ...args),
+  error: (...args: unknown[]) => console.error('[SoundStore Error]', ...args)
+};
+
 // The four syllables of the Kirtan Kriya mantra with corresponding notes
 export interface MantraNote {
   pitch: string;
@@ -83,11 +92,16 @@ function createSoundStore() {
     // Control transport based on timer state
     if (state.isTimerRunning) {
       if (Tone.Transport.state !== 'started') {
+        log.state('Starting transport, current state:', Tone.Transport.state);
+        log.state('Context state:', Tone.context.state);
         Tone.Transport.start();
+        log.state('Transport started, new state:', Tone.Transport.state);
       }
     } else {
       if (Tone.Transport.state === 'started') {
+        log.state('Pausing transport, current state:', Tone.Transport.state);
         Tone.Transport.pause();
+        log.state('Transport paused, new state:', Tone.Transport.state);
       }
     }
 
@@ -124,7 +138,13 @@ function createSoundStore() {
       if (get({ subscribe }).isInitialized) return;
 
       try {
+        log.init('Starting Tone.js initialization');
+        log.init('Tone.js context state:', Tone.context.state);
+        log.init('Tone.js current time:', Tone.now());
+        
         await Tone.start();
+        log.init('Tone.js started successfully');
+        log.init('Post-start context state:', Tone.context.state);
 
         // Initialize volume control
         const initialVolume = volumeToDecibels(get({ subscribe }).volumeLevel);
@@ -146,16 +166,32 @@ function createSoundStore() {
 
         // Create a loop that plays each mantra note in sequence
         let lastNoteTime = 0;
+        let loopStartTime = 0;
         loop = new Tone.Loop(() => {
           if (synth && vol) {
             const currentNote = mantraNotes[noteIndex];
             const currentTime = Tone.now();
+            const transportTime = Tone.Transport.seconds;
+            
+            // Debug timing information
+            log.tone({
+              loop: {
+                iteration: Math.floor((currentTime - loopStartTime) / Tone.Time(noteDuration).toSeconds()),
+                currentTime,
+                transportTime,
+                lastNoteTime,
+                timeSinceLastNote: currentTime - lastNoteTime,
+                bpm: Tone.Transport.bpm.value,
+                state: Tone.Transport.state
+              }
+            });
 
             // Ensure we're scheduling the next note after the last one
             const scheduleTime = Math.max(currentTime, lastNoteTime + 0.1);
 
             // Only trigger sound if volume is not at -Infinity (effectively muted)
             if (vol.volume.value > -Infinity) {
+              log.tone(`Scheduling note ${currentNote.mantra} at ${scheduleTime}, delta: ${scheduleTime - currentTime}`);
               synth.triggerAttackRelease(currentNote.pitch, noteDuration, scheduleTime);
             }
 
@@ -170,9 +206,12 @@ function createSoundStore() {
 
         // Set BPM for the mantra chanting
         Tone.Transport.bpm.value = 60;
+        log.init('Transport BPM set to:', Tone.Transport.bpm.value);
 
         // Start the loop (but transport won't start until timer runs)
+        loopStartTime = Tone.now();
         loop.start(0);
+        log.init('Loop started at:', loopStartTime);
 
         // Set initial mute state
         vol.volume.value = -Infinity;
