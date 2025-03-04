@@ -2,6 +2,10 @@
 	import '../app.css';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { dev } from '$app/environment';
+	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+
+	injectAnalytics({ mode: dev ? 'development' : 'production' });
 </script>
 
 <svelte:head>
