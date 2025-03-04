@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
-import { timerStore, TimerEventType, type TimerEvent } from './timerStore';
+import { timerStore } from './timerStore';
+import { getSoundSettings, setSoundSettings } from '../services/storageService';
 import * as Tone from 'tone';
 
 // The four syllables of the Kirtan Kriya mantra with corresponding notes
@@ -35,14 +36,16 @@ function createSoundStore() {
   let loop: Tone.Loop | null = null;
   let vol: Tone.Volume | null = null;
   let noteIndex = 0;
-  let timerEventUnsubscribers: Array<() => void> = [];
+
+  // Load initial sound settings from storage
+  const settings = getSoundSettings();
 
   // Create the writable store with initial state
-  const { subscribe, update, set } = writable<SoundState>({
+  const { subscribe, update } = writable<SoundState>({
     isInitialized: false,
-    volumeLevel: 70,
+    volumeLevel: settings.volume,
     currentMantra: '',
-    isMuted: true,
+    isMuted: settings.isMuted,
     isTimerRunning: false
   });
 
@@ -98,36 +101,20 @@ function createSoundStore() {
     }
   };
 
-  // Timer event handlers
-  const handleTimerStart = (event: TimerEvent) => {
-    if (event.phase) {
-      update(state => ({
+  // Subscribe to timer store changes
+  const unsubscribeTimer = timerStore.subscribe(($timer) => {
+    update(state => {
+      const newState = {
         ...state,
-        isTimerRunning: true,
-        currentPhaseVolumeLevel: event.phase.volumeLevel
-      }));
-    } else {
-      update(state => ({ ...state, isTimerRunning: true }));
-    }
-    updateSoundPlayback();
-  };
-
-  const handleTimerPause = () => {
-    update(state => ({ ...state, isTimerRunning: false }));
-    updateSoundPlayback();
-  };
-
-  const handleTimerReset = () => {
-    update(state => ({ ...state, isTimerRunning: false }));
-    updateSoundPlayback();
-  };
-
-  const handlePhaseChange = (event: TimerEvent) => {
-    if (event.phase) {
-      update(state => ({ ...state, currentPhaseVolumeLevel: event.phase.volumeLevel }));
-      updateSoundPlayback();
-    }
-  };
+        isTimerRunning: $timer.isRunning,
+        currentPhaseVolumeLevel: $timer.phases[$timer.currentPhaseIndex].volumeLevel
+      };
+      if (typeof updateSoundPlayback === 'function') {
+        updateSoundPlayback();
+      }
+      return newState;
+    });
+  });
 
   // Public store API
   return {
@@ -184,33 +171,10 @@ function createSoundStore() {
         // Set initial mute state
         vol.volume.value = -Infinity;
 
-        // Subscribe to timer events
-        timerEventUnsubscribers = [
-          timerStore.addEventListener(TimerEventType.START, handleTimerStart),
-          timerStore.addEventListener(TimerEventType.PAUSE, handleTimerPause),
-          timerStore.addEventListener(TimerEventType.RESET, handleTimerReset),
-          timerStore.addEventListener(TimerEventType.PHASE_CHANGE, handlePhaseChange)
-        ];
-
-        // Initialize with current timer state
-        const timerState = get(timerStore);
-        if (timerState.isRunning) {
-          const currentPhase = timerStore.getCurrentPhase();
-          update(state => ({
-            ...state,
-            isInitialized: true,
-            isTimerRunning: timerState.isRunning,
-            currentPhaseVolumeLevel: currentPhase?.volumeLevel
-          }));
-        } else {
-          update(state => ({
-            ...state,
-            isInitialized: true,
-            isTimerRunning: false
-          }));
-        }
-
+        // Set initial state
+        update(state => ({ ...state, isInitialized: true }));
         updateSoundPlayback();
+
       } catch (error) {
         console.error('Failed to initialize audio:', error);
         throw error;
@@ -218,44 +182,52 @@ function createSoundStore() {
     },
 
     setVolume(level: number): void {
-      if (level < 0 || level > 100) return;
-      update(state => ({ ...state, volumeLevel: level }));
-      updateSoundPlayback();
+      setSoundSettings({ volume: level });
+      update(state => {
+        const newState = { ...state, volumeLevel: level };
+        updateSoundPlayback();
+        return newState;
+      });
     },
 
     toggleMute(): void {
-      update(state => ({ ...state, isMuted: !state.isMuted }));
-      updateSoundPlayback();
+      update(state => {
+        const isMuted = !state.isMuted;
+        setSoundSettings({ isMuted });
+        updateSoundPlayback();
+        return { ...state, isMuted };
+      });
     },
 
-    playNotification(): void {
-      const state = get({ subscribe });
-      const timerState = get(timerStore);
-      if (!state.isInitialized || state.isMuted || !timerState.isRunning) return;
+    cleanup(): void {
+      // Cleanup timer subscription
+      unsubscribeTimer();
 
-      try {
-        const notifySynth = new Tone.Synth().toDestination();
-
-        // Scale volume by phase if available
-        let volumeLevel = state.volumeLevel;
-        if (state.currentPhaseVolumeLevel !== undefined) {
-          volumeLevel = (volumeLevel * state.currentPhaseVolumeLevel) / 100;
-        }
-
-        const volumeDb = volumeToDecibels(volumeLevel);
-        if (volumeDb !== null && !isNaN(volumeDb)) {
-          notifySynth.volume.value = volumeDb;
-        }
-
-        // Play a simple notification melody
-        const now = Tone.now();
-        notifySynth.triggerAttackRelease('G4', '8n', now);
-        notifySynth.triggerAttackRelease('C5', '8n', now + 0.25);
-        notifySynth.triggerAttackRelease('E5', '4n', now + 0.5);
-      } catch (error) {
-        console.error('Error playing notification:', error);
+      // Stop and cleanup Tone.js resources
+      if (loop) {
+        loop.stop();
+        loop.dispose();
+        loop = null;
       }
-    },
+
+      if (synth) {
+        synth.dispose();
+        synth = null;
+      }
+
+      if (vol) {
+        vol.dispose();
+        vol = null;
+      }
+
+      // Reset store state
+      update(state => ({
+        ...state,
+        isInitialized: false,
+        currentMantra: '',
+        isTimerRunning: false
+      }));
+    }
   };
 }
 

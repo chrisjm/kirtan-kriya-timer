@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { getCurrentPhaseIndex, setCurrentPhaseIndex } from '../services/storageService';
 
 // Event types for timer state changes
 export enum TimerEventType {
@@ -41,7 +42,7 @@ const defaultPhases: TimerPhase[] = [
 const createTimerStore = () => {
   const initialState: TimerState = {
     phases: defaultPhases,
-    currentPhaseIndex: 0,
+    currentPhaseIndex: getCurrentPhaseIndex(),
     isRunning: false,
     timeRemaining: defaultPhases[0].durationMinutes * 60 * 1000
   };
@@ -50,31 +51,7 @@ const createTimerStore = () => {
   type EventCallback = (event: TimerEvent) => void;
   const listeners: Map<TimerEventType, EventCallback[]> = new Map();
 
-  const { subscribe, set, update } = writable<TimerState>(initialState);
-
-  // Load saved state from localStorage if available
-  if (typeof window !== 'undefined') {
-    try {
-      const savedState = localStorage.getItem('kirtan-kriya-timer-state');
-      if (savedState) {
-        const parsedState = JSON.parse(savedState);
-        set(parsedState);
-      }
-    } catch (error) {
-      console.error('Error loading saved timer state:', error);
-    }
-  }
-
-  // Helper to save state to localStorage
-  const saveState = (state: TimerState) => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('kirtan-kriya-timer-state', JSON.stringify(state));
-      } catch (error) {
-        console.error('Error saving timer state:', error);
-      }
-    }
-  };
+  const { subscribe, update } = writable<TimerState>(initialState);
 
   // Helper to emit events
   const emitEvent = (event: TimerEvent) => {
@@ -98,9 +75,6 @@ const createTimerStore = () => {
     },
 
     startTimer: () => update(state => {
-      const newState = { ...state, isRunning: true };
-      saveState(newState);
-
       // Emit start event with current phase
       emitEvent({
         type: TimerEventType.START,
@@ -108,36 +82,33 @@ const createTimerStore = () => {
         phaseIndex: state.currentPhaseIndex
       });
 
-      return newState;
+      return { ...state, isRunning: true };
     }),
 
     pauseTimer: () => update(state => {
-      const newState = { ...state, isRunning: false };
-      saveState(newState);
-
       // Emit pause event
       emitEvent({ type: TimerEventType.PAUSE });
 
-      return newState;
+      return { ...state, isRunning: false };
     }),
 
     resetTimer: () => update(state => {
-      const newState = {
-        ...state,
-        isRunning: false,
-        currentPhaseIndex: 0,
-        timeRemaining: state.phases[0].durationMinutes * 60 * 1000
-      };
-      saveState(newState);
+      const newIndex = 0;
+      setCurrentPhaseIndex(newIndex);
 
       // Emit reset event with first phase
       emitEvent({
         type: TimerEventType.RESET,
-        phase: state.phases[0],
-        phaseIndex: 0
+        phase: state.phases[newIndex],
+        phaseIndex: newIndex
       });
 
-      return newState;
+      return {
+        ...state,
+        isRunning: false,
+        currentPhaseIndex: newIndex,
+        timeRemaining: state.phases[newIndex].durationMinutes * 60 * 1000
+      };
     }),
 
     updateTimeRemaining: (timeRemaining: number) => update(state => {
@@ -147,52 +118,36 @@ const createTimerStore = () => {
     }),
 
     nextPhase: () => update(state => {
-      if (state.currentPhaseIndex >= state.phases.length - 1) {
-        // If we're at the last phase, reset and emit completion
-        const newState = {
-          ...state,
-          isRunning: false,
-          currentPhaseIndex: 0,
-          timeRemaining: state.phases[0].durationMinutes * 60 * 1000
-        };
-        saveState(newState);
+      const nextIndex = state.currentPhaseIndex >= state.phases.length - 1 ? 0 : state.currentPhaseIndex + 1;
+      const nextPhase = state.phases[nextIndex];
+      
+      setCurrentPhaseIndex(nextIndex);
 
-        // Emit complete event
+      if (nextIndex === 0) {
+        // Emit complete event at end of cycle
         emitEvent({ type: TimerEventType.COMPLETE });
-
-        return newState;
       } else {
-        // Move to next phase
-        const nextIndex = state.currentPhaseIndex + 1;
-        const nextPhase = state.phases[nextIndex];
-        const newState = {
-          ...state,
-          currentPhaseIndex: nextIndex,
-          timeRemaining: nextPhase.durationMinutes * 60 * 1000
-        };
-        saveState(newState);
-
         // Emit phase change event
         emitEvent({
           type: TimerEventType.PHASE_CHANGE,
           phase: nextPhase,
           phaseIndex: nextIndex
         });
-
-        return newState;
       }
+
+      return {
+        ...state,
+        isRunning: nextIndex !== 0, // Stop if we've completed the cycle
+        currentPhaseIndex: nextIndex,
+        timeRemaining: nextPhase.durationMinutes * 60 * 1000
+      };
     }),
 
     selectPhase: (index: number) => update(state => {
       if (index < 0 || index >= state.phases.length) return state;
 
       const selectedPhase = state.phases[index];
-      const newState = {
-        ...state,
-        currentPhaseIndex: index,
-        timeRemaining: selectedPhase.durationMinutes * 60 * 1000
-      };
-      saveState(newState);
+      setCurrentPhaseIndex(index);
 
       // Emit phase change event
       emitEvent({
@@ -201,7 +156,11 @@ const createTimerStore = () => {
         phaseIndex: index
       });
 
-      return newState;
+      return {
+        ...state,
+        currentPhaseIndex: index,
+        timeRemaining: selectedPhase.durationMinutes * 60 * 1000
+      };
     }),
 
     // Helper to get current phase

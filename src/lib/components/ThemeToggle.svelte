@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { getTheme, setTheme } from '../services/storageService';
 
 	type Theme = 'light' | 'dark' | 'auto';
 	let theme: Theme = 'auto';
@@ -22,8 +23,7 @@
 	}
 
 	onMount(() => {
-		const savedTheme = (localStorage.getItem('theme') as Theme) || 'auto';
-		theme = savedTheme;
+		theme = getTheme();
 		updateTheme(theme);
 
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -40,7 +40,7 @@
 		const currentIndex = themes.indexOf(theme);
 		theme = themes[(currentIndex + 1) % themes.length];
 		updateTheme(theme);
-		localStorage.setItem('theme', theme);
+		setTheme(theme);
 	}
 </script>
 
