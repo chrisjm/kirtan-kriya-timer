@@ -10,7 +10,7 @@
 	import { Confetti } from 'svelte-confetti';
 </script>
 
-{#if !$timerStore.meditationCompleted}
+{#if $timerStore.meditationCompleted}
 	<div
 		style="
 position: fixed;
