@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { soundStore } from '$lib/stores/soundStore';
+	import { Volume2, VolumeX } from 'lucide-svelte';
 </script>
 
 <section class="px-6 pb-6">
 	<div class="flex gap-3 items-center">
 		<label class="cursor-pointer label flex items-center gap-2">
-			<span class="label-text font-medium">Sound</span>
+			<span class="label-text font-medium flex items-center gap-1">
+				{#if $soundStore.isMuted}
+					<VolumeX class="h-5 w-5" />
+				{:else}
+					<Volume2 class="h-5 w-5" />
+				{/if}
+				Sound
+			</span>
 			<input
 				type="checkbox"
 				class="toggle toggle-primary"
