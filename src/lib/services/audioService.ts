@@ -28,9 +28,9 @@ export const createAudioEngine = async (
   const synth = new Tone.Synth({
     oscillator: { type: 'sine' },
     envelope: {
-      attack: 0.1,
-      decay: 0.2,
-      sustain: 0.6,
+      attack: 0.2,
+      decay: 0.4,
+      sustain: 0.5,
       release: 0.5
     }
   }).connect(vol);
@@ -47,7 +47,7 @@ export const createAudioEngine = async (
   }, noteDuration);
 
   // Set BPM
-  Tone.Transport.bpm.value = 60;
+  Tone.getTransport().bpm.value = 66;
 
   return { synth, vol, loop };
 };

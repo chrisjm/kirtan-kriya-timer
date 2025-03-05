@@ -5,13 +5,6 @@ import * as Tone from 'tone';
 import { TimerStatus } from './timer/types';
 import { volumeToDecibels, type AudioEngine } from '$lib/services/audioService';
 
-// Debug logging utility
-const DEBUG = true;
-const log = {
-  state: (...args: unknown[]) => DEBUG && console.log('[SoundStore State]', ...args),
-  error: (...args: unknown[]) => console.error('[SoundStore Error]', ...args)
-};
-
 // The four syllables of the Kirtan Kriya mantra with corresponding notes
 export interface MantraNote {
   pitch: string;
@@ -19,10 +12,10 @@ export interface MantraNote {
 }
 
 export const mantraNotes: MantraNote[] = [
-  { pitch: 'E3', mantra: 'Sa' },
-  { pitch: 'D3', mantra: 'Ta' },
-  { pitch: 'C3', mantra: 'Na' },
-  { pitch: 'D3', mantra: 'Ma' }
+  { pitch: 'E3', mantra: 'Saa' },
+  { pitch: 'D3', mantra: 'Taa' },
+  { pitch: 'C3', mantra: 'Naa' },
+  { pitch: 'D3', mantra: 'Maa' }
 ];
 
 export interface SoundState {
@@ -58,24 +51,18 @@ function createSoundStore() {
       // Control transport based on timer state
       if (state.isTimerRunning) {
         if (!isStarted) {
-          log.state('Starting audio context...');
           await Tone.start();
           isStarted = true;
-          log.state('Audio context started successfully');
         }
 
-        if (Tone.Transport.state !== 'started') {
-          log.state('Starting transport, current state:', Tone.Transport.state);
-          Tone.Transport.start();
+        if (Tone.getTransport().state !== 'started') {
+          Tone.getTransport().start();
           audioEngine.loop.start();
-          log.state('Transport started, new state:', Tone.Transport.state);
         }
       } else {
-        if (Tone.Transport.state === 'started') {
-          log.state('Pausing transport, current state:', Tone.Transport.state);
-          Tone.Transport.pause();
+        if (Tone.getTransport().state === 'started') {
+          Tone.getTransport().pause();
           audioEngine.loop.stop();
-          log.state('Transport paused, new state:', Tone.Transport.state);
         }
       }
 
@@ -90,7 +77,7 @@ function createSoundStore() {
         audioEngine.vol.volume.value = volumeToDecibels(state.volumeLevel);
       }
     } catch (error) {
-      log.error('Error updating sound playback:', error);
+      console.error('Error updating sound playback:', error);
     }
   };
 

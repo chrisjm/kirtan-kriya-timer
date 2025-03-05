@@ -1,14 +1,9 @@
 import { writable, get } from 'svelte/store';
 import { getCurrentPhaseIndex, setCurrentPhaseIndex } from '../services/storageService';
 import { TimerStatus, type TimerState } from './timer/types.js';
-import { type TimerTransition, validTransitions } from './timer/transitions.js';
+import { isValidTransition } from './timer/transitions.js';
 import { defaultPhases } from './timer/defaultPhases';
 import { createMasterTimer } from './timer/masterTimer';
-
-// Validate state transition
-function isValidTransition(from: TimerStatus, to: TimerStatus, action: TimerTransition['action']): boolean {
-  return validTransitions.some(t => t.from === from && t.to === to && t.action === action);
-}
 
 // Create the writable store with enhanced initial state
 const createTimerStore = () => {
