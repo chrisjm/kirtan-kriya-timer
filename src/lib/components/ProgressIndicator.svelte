@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { timerStore, type TimerPhase, TimerStatus } from '$lib/stores/timerStore';
+	import { type TimerPhase } from '$lib/stores/timer/types';
+	import { timerStore } from '$lib/stores/timerStore';
 
 	// Calculate total duration in milliseconds
 	$: totalDuration = $timerStore.phases.reduce(
@@ -19,9 +20,6 @@
 			(phase.durationMinutes / $timerStore.phases.reduce((sum, p) => sum + p.durationMinutes, 0)) *
 			100
 	);
-
-	// Determine if timer is in a transitioning state
-	$: isTransitioning = $timerStore.status === TimerStatus.TRANSITIONING;
 
 	// Calculate completed duration taking into account phase completion status
 	function calculateCompletedDuration(): number {
@@ -74,13 +72,11 @@
 		{#each $timerStore.phases as phase, i}
 			{@const isActive = i === $timerStore.currentPhaseIndex}
 			{@const isCompleted = phase.completed}
-			{@const isTransitioningCurrent = isTransitioning && isActive}
 			<button
 				class="group relative flex items-center justify-center transition-all duration-300
   hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
 				class:border-2={isActive}
 				class:border-white={isActive}
-				class:animate-pulse={isTransitioningCurrent}
 				style="
           width: {phasePercentages[i]}%;
           background-color: {getPhaseColor(phase, isActive, isCompleted)};

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { timerStore, TimerStatus } from '$lib/stores/timerStore';
+	import { TimerStatus } from '$lib/stores/timer/types';
+	import { timerStore } from '$lib/stores/timerStore';
 
 	function startTimer(): void {
 		timerStore.startTimer();

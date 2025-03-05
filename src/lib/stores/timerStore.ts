@@ -1,25 +1,17 @@
 import { writable, get } from 'svelte/store';
 import { getCurrentPhaseIndex, setCurrentPhaseIndex } from '../services/storageService';
-import { TimerStatus, type TimerPhase, type TimerState } from './timer/types.js';
+import { TimerStatus, type TimerState } from './timer/types.js';
 import { type TimerTransition, validTransitions } from './timer/transitions.js';
+import { defaultPhases } from './timer/defaultPhases';
+import { createMasterTimer } from './timer/masterTimer';
 
 // Validate state transition
 function isValidTransition(from: TimerStatus, to: TimerStatus, action: TimerTransition['action']): boolean {
   return validTransitions.some(t => t.from === from && t.to === to && t.action === action);
 }
 
-// Default Kirtan Kriya meditation phases - fixed sequence
-const defaultPhases: TimerPhase[] = [
-  { id: 'phase-1', action: 'Out-loud chant', durationMinutes: 2, volumeLevel: 90, completed: false },
-  { id: 'phase-2', action: 'Whisper chant', durationMinutes: 2, volumeLevel: 60, completed: false },
-  { id: 'phase-3', action: 'Mental chant', durationMinutes: 4, volumeLevel: 0, completed: false },
-  { id: 'phase-4', action: 'Whisper chant', durationMinutes: 2, volumeLevel: 60, completed: false },
-  { id: 'phase-5', action: 'Out-loud chant', durationMinutes: 2, volumeLevel: 90, completed: false }
-];
-
 // Create the writable store with enhanced initial state
 const createTimerStore = () => {
-  // TODO: Check local storage?
   const initialPhaseIndex = getCurrentPhaseIndex();
 
   const initialState: TimerState = {
@@ -33,46 +25,59 @@ const createTimerStore = () => {
   // Create store with initial state
   const { subscribe, update } = writable<TimerState>(initialState);
 
-  // Generate a unique timer ID for a phase
-  const generateTimerId = (phaseIndex: number): string => {
-    return `timer_phase_${phaseIndex}_${Date.now()}`;
-  };
-
-  return {
-    subscribe,
-
-    getStatus: (): TimerStatus => {
-      return get({ subscribe }).status;
+  // Create master timer
+  const masterTimer = createMasterTimer({
+    onTick: (timeRemaining: number) => {
+      update(state => ({ ...state, timeRemaining }));
     },
+    onComplete: () => {
+      const state = get({ subscribe });
+      if (state.status === TimerStatus.RUNNING) {
+        completeCurrentPhase();
+      }
+    }
+  });
 
-    startTimer: () => update(state => {
+  const getStatus = function (): TimerStatus {
+    return get({ subscribe }).status;
+  }
+
+  const startTimer = function () {
+    update(state => {
       // Only start if we're not already running
       if (state.status === TimerStatus.RUNNING) {
         return state;
       }
 
-      const timerId = generateTimerId(state.currentPhaseIndex);
+      // Start the master timer
+      masterTimer.start(state.timeRemaining);
 
       return {
         ...state,
-        status: TimerStatus.RUNNING,
-        activeTimerId: timerId
+        status: TimerStatus.RUNNING
       };
-    }),
+    });
+  }
 
-    pauseTimer: () => update(state => {
+  const pauseTimer = function () {
+    update(state => {
       // Only pause if currently running
       if (state.status !== TimerStatus.RUNNING) {
         return state;
       }
 
+      // Pause the master timer
+      masterTimer.pause();
+
       return {
         ...state,
         status: TimerStatus.PAUSED
       };
-    }),
+    });
+  }
 
-    resetTimer: () => update(state => {
+  const resetTimer = function () {
+    update(state => {
       const newIndex = 0;
       setCurrentPhaseIndex(newIndex);
 
@@ -82,28 +87,21 @@ const createTimerStore = () => {
         completed: false
       }));
 
-      const newTimerId = generateTimerId(newIndex);
+      // Pause any running timer
+      masterTimer.pause();
 
       return {
         ...state,
         phases: resetPhases,
         status: TimerStatus.IDLE,
         currentPhaseIndex: newIndex,
-        timeRemaining: resetPhases[newIndex].durationMinutes * 60 * 1000,
-        activeTimerId: newTimerId
+        timeRemaining: resetPhases[newIndex].durationMinutes * 60 * 1000
       };
-    }),
+    });
+  }
 
-    updateTimeRemaining: (timeRemaining: number, timerId?: string) => update(state => {
-      // Validate timer ID if provided
-      if (timerId && state.activeTimerId !== timerId) {
-        return state;
-      }
-
-      return { ...state, timeRemaining };
-    }),
-
-    completeCurrentPhase: () => update(state => {
+  const completeCurrentPhase = function () {
+    update(state => {
       // Only allow completion if we're running
       if (state.status !== TimerStatus.RUNNING) {
         return state;
@@ -126,17 +124,16 @@ const createTimerStore = () => {
         }
 
         // Reset to initial state
+        masterTimer.pause();
         return {
           ...state,
           status: TimerStatus.IDLE,
-          timeRemaining: 0,
-          activeTimerId: undefined
+          timeRemaining: 0
         };
       } else {
         // Move to next phase
         const nextIndex = state.currentPhaseIndex + 1;
         const nextPhase = state.phases[nextIndex];
-        const newTimerId = generateTimerId(nextIndex);
 
         // Validate and perform state transition
         if (!isValidTransition(state.status, TimerStatus.RUNNING, 'COMPLETE_PHASE')) {
@@ -145,37 +142,57 @@ const createTimerStore = () => {
 
         setCurrentPhaseIndex(nextIndex);
 
+        // Start the timer for the next phase
+        const nextPhaseTime = nextPhase.durationMinutes * 60 * 1000;
+        masterTimer.start(nextPhaseTime);
+
         return {
           ...state,
           phases: updatedPhases,
           status: TimerStatus.RUNNING,
           currentPhaseIndex: nextIndex,
-          timeRemaining: nextPhase.durationMinutes * 60 * 1000,
-          activeTimerId: newTimerId
+          timeRemaining: nextPhaseTime
         };
       }
-    }),
+    });
+  }
 
-    selectPhase: (index: number) => update(state => {
+  const selectPhase = function (index: number) {
+    update(state => {
       if (index < 0 || index >= state.phases.length) {
         return state;
       }
 
       const selectedPhase = state.phases[index];
       const wasRunning = state.status === TimerStatus.RUNNING;
-      const newTimerId = generateTimerId(index);
+      const newTime = selectedPhase.durationMinutes * 60 * 1000;
 
       setCurrentPhaseIndex(index);
+
+      // If it was running, start the timer for the new phase
+      if (wasRunning) {
+        masterTimer.start(newTime);
+      } else {
+        masterTimer.pause();
+      }
 
       return {
         ...state,
         currentPhaseIndex: index,
-        timeRemaining: selectedPhase.durationMinutes * 60 * 1000,
-        activeTimerId: newTimerId,
-        // Maintain running state if it was running before
+        timeRemaining: newTime,
         status: wasRunning ? TimerStatus.RUNNING : TimerStatus.IDLE
       };
-    }),
+    });
+  }
+
+  return {
+    subscribe,
+    getStatus,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    completeCurrentPhase,
+    selectPhase,
   };
 };
 
