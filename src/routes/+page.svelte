@@ -1,26 +1,11 @@
 <script lang="ts">
 	import Resources from '$lib/components/Resources.svelte';
 	import TimerDisplay from '$lib/components/TimerDisplay.svelte';
-	import { onMount, onDestroy } from 'svelte';
-	import { soundStore, mantraNotes } from '$lib/stores/soundStore';
-	import { createAudioEngine } from '$lib/services/audioService';
+	import AudioInitializer from '$lib/components/AudioInitializer.svelte';
 
 	let title = 'Kirtan Kriya Timer';
 	let description =
 		'A 12-minute meditation practice for improved brain function and spiritual growth';
-
-	onMount(async () => {
-		const audioEngine = await createAudioEngine(
-			$soundStore.volumeLevel,
-			mantraNotes,
-			(index) => soundStore.updateCurrentMantra(index)
-		);
-		soundStore.setAudioEngine(audioEngine);
-	});
-
-	onDestroy(() => {
-		soundStore.cleanup();
-	});
 </script>
 
 <svelte:head>
@@ -36,4 +21,5 @@
 
 	<TimerDisplay />
 	<Resources />
+	<AudioInitializer />
 </main>
