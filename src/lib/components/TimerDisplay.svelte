@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import { timerStore } from '$lib/stores/timerStore';
 	import { soundStore } from '$lib/stores/soundStore';
 	import ProgressIndicator from './ProgressIndicator.svelte';
@@ -8,86 +7,6 @@
 	import CurrentPhase from './CurrentPhase.svelte';
 	import SoundControls from './SoundControls.svelte';
 	import { millisecondsToSeconds, secondsToMinutes, padWithZeroes } from '$lib/utils/formatUtils';
-
-	// Timer state
-	let timerEndTime: number;
-	let timerId: NodeJS.Timer | undefined;
-	let soundInitialized = false;
-
-	onMount(async () => {
-		try {
-			// Initialize sound store first, ensuring mantras are ready
-			await soundStore.initialize();
-			soundInitialized = true;
-			console.log('Sound system initialized successfully');
-
-			// Now that sound is initialized, check if timer should be running
-			const timerState = $timerStore;
-			if (timerState.isRunning && !timerId) {
-				timerEndTime = Date.now() + timerState.timeRemaining;
-				updateCountdown();
-			}
-		} catch (error) {
-			console.error('Failed to initialize sound system:', error);
-		}
-
-		// Subscribe to timer store changes to handle timer start/stop
-		timerStore.subscribe((state) => {
-			if (state.isRunning && !timerId) {
-				timerEndTime = Date.now() + state.timeRemaining;
-				updateCountdown();
-			}
-		});
-	});
-
-	onDestroy(() => {
-		// Clean up any timers to prevent memory leaks
-		if (timerId) {
-			clearTimeout(timerId);
-			timerId = undefined;
-		}
-	});
-
-	// Timer countdown function
-	function updateCountdown() {
-		clearTimeout(timerId);
-		timerId = undefined;
-
-		let now = Date.now();
-		const newTimeRemaining = timerEndTime - now;
-
-		// Update the store with the new time
-		timerStore.updateTimeRemaining(Math.max(0, newTimeRemaining));
-
-		if (newTimeRemaining > 0 && $timerStore.isRunning) {
-			timerId = setTimeout(updateCountdown, 1000);
-		} else if (newTimeRemaining <= 0) {
-			// Check if we're at the last phase
-			if ($timerStore.currentPhaseIndex >= $timerStore.phases.length - 1) {
-				pauseTimer();
-				resetTimer();
-			} else {
-				nextPhase();
-			}
-		}
-	}
-
-	function nextPhase() {
-		timerStore.nextPhase();
-		timerEndTime = Date.now() + $timerStore.timeRemaining;
-		updateCountdown();
-	}
-
-	function resetTimer() {
-		clearTimeout(timerId);
-		timerStore.resetTimer();
-	}
-
-	function pauseTimer() {
-		clearTimeout(timerId);
-		timerId = undefined;
-		timerStore.pauseTimer();
-	}
 </script>
 
 <div class="rounded-lg bg-white shadow-xl dark:bg-gray-800">
@@ -96,22 +15,68 @@
 
 	<!-- Timer Display -->
 	<section class="text-center p-6">
+		<!-- Timer status indicator -->
+
+		<!-- Time remaining display -->
 		<div class="font-mono text-5xl tabular-nums tracking-wider">
 			{padWithZeroes(
 				secondsToMinutes(millisecondsToSeconds($timerStore.timeRemaining))
 			)}:{padWithZeroes(millisecondsToSeconds($timerStore.timeRemaining) % 60)}
 		</div>
 
-		<!-- Timer Controls -->
+		<!-- Timer Controls - Will auto-update based on timer status -->
 		<TimerControls />
 
-		<!-- Current Phase Info -->
+		<!-- Current Phase Info - Will auto-update based on current phase -->
 		<CurrentPhase />
 	</section>
 
-	<!-- Phase Selection -->
+	<!-- Phase Selection with completion indicators -->
 	<PhaseSelection />
 
 	<!-- Sound Controls -->
 	<SoundControls />
+
+	<!-- Debug info during development -->
+	{#if import.meta.env.DEV}
+		<div
+			class="p-4 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 space-y-2"
+		>
+			<!-- Timer State -->
+			<div class="border-b pb-2 dark:border-gray-600">
+				<div class="font-medium mb-1">Timer State</div>
+				<div>Status: {$timerStore.status}</div>
+				<div>Current Phase: {$timerStore.currentPhaseIndex + 1} of {$timerStore.phases.length}</div>
+				<div>Time Remaining: {$timerStore.timeRemaining}ms</div>
+				<div>Phase Duration: {$timerStore.phases[$timerStore.currentPhaseIndex].durationMinutes}min</div>
+				<div>Phase Volume: {$timerStore.phases[$timerStore.currentPhaseIndex].volumeLevel}%</div>
+			</div>
+
+			<!-- Sound State -->
+			<div class="border-b pb-2 dark:border-gray-600">
+				<div class="font-medium mb-1">Sound State</div>
+				<div>Initialized: {$soundStore.isInitialized ? 'Yes' : 'No'}</div>
+				<div>Volume: {$soundStore.volumeLevel}%</div>
+				<div>Muted: {$soundStore.isMuted ? 'Yes' : 'No'}</div>
+				<div>Current Mantra: {$soundStore.currentMantra?.mantra ?? 'None'}</div>
+				<div>Current Pitch: {$soundStore.currentMantra?.pitch ?? 'None'}</div>
+			</div>
+
+			<!-- Phase Progress -->
+			<div>
+				<div class="font-medium mb-1">Phase Progress</div>
+				{#each $timerStore.phases as phase, i}
+					<div class="flex items-center gap-2">
+						<span class="{i === $timerStore.currentPhaseIndex ? 'text-primary' : ''}">
+							{i + 1}.
+						</span>
+						<span>{phase.action}</span>
+						{#if phase.completed}
+							<span class="text-success">✓</span>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </div>

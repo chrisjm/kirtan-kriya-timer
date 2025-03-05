@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Resources from '$lib/components/Resources.svelte';
 	import TimerDisplay from '$lib/components/TimerDisplay.svelte';
+	import AudioInitializer from '$lib/components/AudioInitializer.svelte';
 
 	let title = 'Kirtan Kriya Timer';
 	let description =
@@ -20,4 +21,5 @@
 
 	<TimerDisplay />
 	<Resources />
+	<AudioInitializer />
 </main>

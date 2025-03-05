@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { timerStore, type TimerPhase } from '$lib/stores/timerStore';
+	import { type TimerPhase } from '$lib/stores/timer/types';
+	import { timerStore } from '$lib/stores/timerStore';
 
 	// Calculate total duration in milliseconds
 	$: totalDuration = $timerStore.phases.reduce(
@@ -8,12 +9,24 @@
 	);
 
 	// Calculate completed duration based on completed phases and current phase progress
-	$: completedDuration =
-		$timerStore.phases
-			.slice(0, $timerStore.currentPhaseIndex)
-			.reduce((total, phase) => total + phase.durationMinutes * 60 * 1000, 0) +
-		($timerStore.phases[$timerStore.currentPhaseIndex].durationMinutes * 60 * 1000 -
-			$timerStore.timeRemaining);
+	$: completedDuration = (() => {
+		// Get total time for fully completed phases
+		const completedPhasesTime = $timerStore.phases
+			.filter((phase) => phase.completed)
+			.reduce((total, phase) => total + phase.durationMinutes * 60 * 1000, 0);
+
+		// For the current phase, calculate progress if it's not completed
+		const currentPhase = $timerStore.phases[$timerStore.currentPhaseIndex];
+		if (!currentPhase || currentPhase.completed) {
+			return completedPhasesTime;
+		}
+
+		// Calculate current phase progress
+		const totalCurrentPhaseTime = currentPhase.durationMinutes * 60 * 1000;
+		const currentPhaseElapsed = totalCurrentPhaseTime - $timerStore.timeRemaining;
+
+		return completedPhasesTime + Math.max(0, currentPhaseElapsed);
+	})();
 
 	// Calculate overall progress percentage
 	$: progressPercentage = Math.min(100, Math.max(0, (completedDuration / totalDuration) * 100));
@@ -26,7 +39,7 @@
 	);
 
 	// Get phase color based on volume level and state
-	function getPhaseColor(phase: TimerPhase, isActive: boolean, isCompleted: boolean): string {
+	function getPhaseColor(phase: TimerPhase, isActive: boolean, isCompleted?: boolean): string {
 		const hue = 215;
 		const saturation = isActive ? 90 : 70;
 		const brightness = 30 + (phase.volumeLevel / 100) * 60;
@@ -55,7 +68,7 @@
 	>
 		{#each $timerStore.phases as phase, i}
 			{@const isActive = i === $timerStore.currentPhaseIndex}
-			{@const isCompleted = i < $timerStore.currentPhaseIndex}
+			{@const isCompleted = phase.completed}
 			<button
 				class="group relative flex items-center justify-center transition-all duration-300
   hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -78,9 +91,30 @@
 				<div class="relative flex items-center justify-center">
 					<span
 						class="flex items-center justify-center w-7 h-7 rounded-full
-                   {isActive ? 'bg-black/20' : 'bg-black/10'} font-medium"
+                   {isActive
+							? 'bg-black/20'
+							: isCompleted
+							? 'bg-success/20'
+							: 'bg-black/10'} font-medium"
 					>
-						{i + 1}
+						{#if isCompleted}
+							<svg
+								class="w-4 h-4 text-white"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+								xmlns="http://www.w3.org/2000/svg"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2.5"
+									d="M5 13l4 4L19 7"
+								/>
+							</svg>
+						{:else}
+							{i + 1}
+						{/if}
 					</span>
 				</div>
 			</button>
@@ -90,12 +124,30 @@
 	<!-- Phase info tooltip -->
 	{#if hoveredPhase !== null}
 		{@const phase = $timerStore.phases[hoveredPhase]}
+		{@const isPhaseCompleted = phase.completed}
 		<div
-			class="text-sm text-center font-medium text-gray-700 dark:text-gray-300 h-6 transition-opacity duration-200"
+			class="text-sm text-center font-medium h-6 transition-opacity duration-200 flex items-center justify-center"
+			class:text-success={isPhaseCompleted}
+			class:text-gray-700={!isPhaseCompleted}
+			class:dark:text-success={isPhaseCompleted}
+			class:dark:text-gray-300={!isPhaseCompleted}
 			role="status"
 		>
+			{#if isPhaseCompleted}
+				<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M5 13l4 4L19 7"
+					/>
+				</svg>
+			{/if}
 			{phase.action} • {phase.durationMinutes}
 			{phase.durationMinutes === 1 ? 'minute' : 'minutes'}
+			{#if isPhaseCompleted}
+				(Completed)
+			{/if}
 		</div>
 	{:else}
 		<div class="h-6" aria-hidden="true" />

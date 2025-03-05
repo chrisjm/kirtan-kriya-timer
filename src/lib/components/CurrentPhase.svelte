@@ -1,24 +1,27 @@
 <script lang="ts">
 	import { timerStore } from '$lib/stores/timerStore';
-	import { formatTime } from '$lib/utils/formatUtils';
 	import { soundStore } from '$lib/stores/soundStore';
 
+	// Reactive declarations to compute current state
 	$: currentPhaseIndex = $timerStore.currentPhaseIndex;
-	$: actionLabel = $timerStore.phases[currentPhaseIndex].action;
+	$: currentPhase = $timerStore.phases[currentPhaseIndex];
+	$: actionLabel = currentPhase?.action || 'Loading...';
 	$: currentMantra = $soundStore.currentMantra;
 </script>
 
 <div class="rounded-lg bg-gray-100 dark:bg-gray-700 p-4 my-4">
-	<h3 class="text-xl font-bold">
-		Phase {currentPhaseIndex + 1}: {actionLabel}
-	</h3>
-	<p class="text-lg">
-		{formatTime($timerStore.phases[currentPhaseIndex].durationMinutes * 60 * 1000)}
-		{#if currentMantra !== ''}
+	<div class="flex justify-center">
+		<h3 class="text-xl font-bold">
+			Phase {currentPhaseIndex + 1}: {actionLabel}
+		</h3>
+	</div>
+
+	{#if currentMantra}
+		<div class="mt-2">
 			<span
-				class="inline-flex items-center px-2.5 py-0.5 rounded-full text-base font-medium bg-primary text-white ml-2"
-				>{currentMantra}</span
+				class="inline-flex items-center px-2.5 py-0.5 rounded-full text-base font-medium bg-primary text-white"
+				>{currentMantra.mantra}</span
 			>
-		{/if}
-	</p>
+		</div>
+	{/if}
 </div>

@@ -1,28 +1,5 @@
 <script lang="ts">
 	import { soundStore } from '$lib/stores/soundStore';
-	let isInitializing = false;
-
-	// Initialize sound when enabling
-	async function toggleSound() {
-		// Prevent multiple initialization attempts
-		if (isInitializing) return;
-		
-		if (!$soundStore.isInitialized) {
-			isInitializing = true;
-			try {
-				await soundStore.initialize();
-			} catch (error) {
-				console.error('Failed to initialize sound:', error);
-			} finally {
-				isInitializing = false;
-			}
-		}
-		
-		// Only toggle mute if initialization succeeded
-		if ($soundStore.isInitialized) {
-			soundStore.toggleMute();
-		}
-	}
 </script>
 
 <section class="px-6 pb-6">
@@ -33,7 +10,7 @@
 				type="checkbox"
 				class="toggle toggle-primary"
 				checked={!$soundStore.isMuted}
-				on:click={toggleSound}
+				on:click={soundStore.toggleMute}
 				title="Toggle sound on/off"
 			/>
 		</label>
@@ -55,9 +32,4 @@
 			/>
 		</label>
 	</div>
-	{#if $soundStore.currentMantra && $soundStore.isTimerRunning}
-		<div class="text-sm text-center mt-2 text-base-content/70">
-			Current Mantra: {$soundStore.currentMantra}
-		</div>
-	{/if}
 </section>
