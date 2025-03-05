@@ -9,20 +9,7 @@
 	);
 
 	// Calculate completed duration based on completed phases and current phase progress
-	$: completedDuration = calculateCompletedDuration();
-
-	// Calculate overall progress percentage
-	$: progressPercentage = Math.min(100, Math.max(0, (completedDuration / totalDuration) * 100));
-
-	// Get phase durations as percentages of total duration
-	$: phasePercentages = $timerStore.phases.map(
-		(phase) =>
-			(phase.durationMinutes / $timerStore.phases.reduce((sum, p) => sum + p.durationMinutes, 0)) *
-			100
-	);
-
-	// Calculate completed duration taking into account phase completion status
-	function calculateCompletedDuration(): number {
+	$: completedDuration = (() => {
 		// Get total time for fully completed phases
 		const completedPhasesTime = $timerStore.phases
 			.filter((phase) => phase.completed)
@@ -39,7 +26,17 @@
 		const currentPhaseElapsed = totalCurrentPhaseTime - $timerStore.timeRemaining;
 
 		return completedPhasesTime + Math.max(0, currentPhaseElapsed);
-	}
+	})();
+
+	// Calculate overall progress percentage
+	$: progressPercentage = Math.min(100, Math.max(0, (completedDuration / totalDuration) * 100));
+
+	// Get phase durations as percentages of total duration
+	$: phasePercentages = $timerStore.phases.map(
+		(phase) =>
+			(phase.durationMinutes / $timerStore.phases.reduce((sum, p) => sum + p.durationMinutes, 0)) *
+			100
+	);
 
 	// Get phase color based on volume level and state
 	function getPhaseColor(phase: TimerPhase, isActive: boolean, isCompleted?: boolean): string {

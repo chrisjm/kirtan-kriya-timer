@@ -107,12 +107,11 @@ const createTimerStore = () => {
         return state;
       }
 
-      // Mark current phase as completed
-      const updatedPhases = [...state.phases];
-      updatedPhases[state.currentPhaseIndex] = {
-        ...updatedPhases[state.currentPhaseIndex],
-        completed: true
-      };
+      // Mark current phase as completed and update all previous phases
+      const updatedPhases = state.phases.map((phase, index) => ({
+        ...phase,
+        completed: index <= state.currentPhaseIndex
+      }));
 
       // Check if this is the last phase
       const isLastPhase = state.currentPhaseIndex === state.phases.length - 1;
@@ -127,6 +126,7 @@ const createTimerStore = () => {
         masterTimer.pause();
         return {
           ...state,
+          phases: updatedPhases,
           status: TimerStatus.IDLE,
           timeRemaining: 0
         };
@@ -176,8 +176,15 @@ const createTimerStore = () => {
         masterTimer.pause();
       }
 
+      // Update completion status of phases
+      const updatedPhases = state.phases.map((phase, i) => ({
+        ...phase,
+        completed: i < index
+      }));
+
       return {
         ...state,
+        phases: updatedPhases,
         currentPhaseIndex: index,
         timeRemaining: newTime,
         status: wasRunning ? TimerStatus.RUNNING : TimerStatus.IDLE
