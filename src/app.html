@@ -2,13 +2,26 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<link rel="icon" href="%sveltekit.assets%/kirtan-kriya-timer-favicon-128px.png" />
 		<meta name="viewport" content="width=device-width" />
+
+		<!-- Open Graph metadata -->
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://www.kirtan-kriya-timer.com" />
+		<meta property="og:title" content="Kirtan Kriya Timer" />
+		<meta
+			property="og:description"
+			content="A meditation timer for practicing Kirtan Kriya, a powerful meditation technique from the Kundalini yoga tradition."
+		/>
+		<meta property="og:image" content="%sveltekit.assets%/kirtan-kriya-timer-og-bg.png" />
 		<!-- Prevent theme flash on page load -->
 		<script>
-			(function() {
+			(function () {
 				const theme = localStorage.getItem('theme') || 'auto';
-				if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+				if (
+					theme === 'dark' ||
+					(theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+				) {
 					document.documentElement.classList.add('dark');
 				} else {
 					document.documentElement.classList.add('light');
