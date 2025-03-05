@@ -13,10 +13,7 @@
 		const audioEngine = await createAudioEngine(
 			$soundStore.volumeLevel,
 			mantraNotes,
-			(index) => {
-				// Update current mantra in store
-				$soundStore.currentMantra = mantraNotes[index];
-			}
+			(index) => soundStore.updateCurrentMantra(index)
 		);
 		soundStore.setAudioEngine(audioEngine);
 	});

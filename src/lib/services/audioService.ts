@@ -8,8 +8,10 @@ export interface AudioEngine {
 }
 
 // Convert volume percentage to decibels for Tone.js
-const volumeToDecibels = (value: number, r1 = [0, 100], r2 = [-48, 0]): number => {
-  return Math.floor(((value - r1[0]) * (r2[1] - r2[0])) / (r1[1] - r1[0]) + r2[0]);
+export const volumeToDecibels = (value: number): number => {
+  const minDb = -48;
+  const maxDb = 0;
+  return Math.floor(((value / 100) * (maxDb - minDb)) + minDb);
 };
 
 export const createAudioEngine = async (
@@ -17,8 +19,10 @@ export const createAudioEngine = async (
   mantraNotes: MantraNote[],
   onMantraChange: (index: number) => void
 ): Promise<AudioEngine> => {
+  // Start with a clean audio context
+  await Tone.start();
   // Initialize volume control
-  const vol = new Tone.Volume(volumeToDecibels(initialVolume)).toDestination();
+  const vol = new Tone.Volume(initialVolume !== null ? volumeToDecibels(initialVolume) : -10).toDestination();
 
   // Initialize synthesizer
   const synth = new Tone.Synth({

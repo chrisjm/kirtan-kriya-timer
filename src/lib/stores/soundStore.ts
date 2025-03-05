@@ -3,7 +3,7 @@ import { timerStore } from './timerStore';
 import { getSoundSettings, setSoundSettings } from '../services/storageService';
 import * as Tone from 'tone';
 import { TimerStatus } from './timer/types';
-import type { AudioEngine } from '$lib/services/audioService';
+import { volumeToDecibels, type AudioEngine } from '$lib/services/audioService';
 
 // Debug logging utility
 const DEBUG = true;
@@ -83,10 +83,11 @@ function createSoundStore() {
       if (state.isMuted || !state.isTimerRunning) {
         audioEngine.vol.volume.value = -Infinity; // Effectively mute
       } else if (state.currentPhaseVolumeLevel !== undefined) {
+        // Scale the volume based on both master volume and phase volume
         const scaledVolume = (state.volumeLevel * state.currentPhaseVolumeLevel) / 100;
-        audioEngine.vol.volume.value = scaledVolume;
+        audioEngine.vol.volume.value = volumeToDecibels(scaledVolume);
       } else {
-        audioEngine.vol.volume.value = state.volumeLevel;
+        audioEngine.vol.volume.value = volumeToDecibels(state.volumeLevel);
       }
     } catch (error) {
       log.error('Error updating sound playback:', error);
@@ -103,12 +104,18 @@ function createSoundStore() {
       };
       return newState;
     });
+    // Ensure sound playback is updated when timer state changes
+    updateSoundPlayback();
   });
 
   const setAudioEngine = function (engine: AudioEngine): void {
     audioEngine = engine;
     update(state => ({ ...state, isInitialized: true }));
     updateSoundPlayback();
+  }
+
+  const updateCurrentMantra = function (index: number): void {
+    update(state => ({ ...state, currentMantra: mantraNotes[index] }));
   }
 
   const setVolume = function (level: number): void {
@@ -149,6 +156,7 @@ function createSoundStore() {
     setVolume,
     toggleMute,
     cleanup,
+    updateCurrentMantra,
   };
 }
 
