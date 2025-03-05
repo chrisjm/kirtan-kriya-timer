@@ -14,7 +14,8 @@ const createTimerStore = () => {
     currentPhaseIndex: initialPhaseIndex,
     status: TimerStatus.IDLE,
     timeRemaining: defaultPhases[initialPhaseIndex].durationMinutes * 60 * 1000,
-    activeTimerId: undefined
+    activeTimerId: undefined,
+    meditationCompleted: false
   };
 
   // Create store with initial state
@@ -90,7 +91,8 @@ const createTimerStore = () => {
         phases: resetPhases,
         status: TimerStatus.IDLE,
         currentPhaseIndex: newIndex,
-        timeRemaining: resetPhases[newIndex].durationMinutes * 60 * 1000
+        timeRemaining: resetPhases[newIndex].durationMinutes * 60 * 1000,
+        meditationCompleted: false
       };
     });
   }
@@ -123,7 +125,8 @@ const createTimerStore = () => {
           ...state,
           phases: updatedPhases,
           status: TimerStatus.IDLE,
-          timeRemaining: 0
+          timeRemaining: 0,
+          meditationCompleted: true
         };
       } else {
         // Move to next phase

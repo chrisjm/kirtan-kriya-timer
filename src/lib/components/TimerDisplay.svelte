@@ -7,7 +7,33 @@
 	import CurrentPhase from './CurrentPhase.svelte';
 	import SoundControls from './SoundControls.svelte';
 	import { millisecondsToSeconds, secondsToMinutes, padWithZeroes } from '$lib/utils/formatUtils';
+	import { Confetti } from 'svelte-confetti';
 </script>
+
+{#if !$timerStore.meditationCompleted}
+	<div
+		style="
+position: fixed;
+top: -50px;
+left: 0;
+height: 100vh;
+width: 100vw;
+display: flex;
+justify-content: center;
+overflow: hidden;
+pointer-events: none;"
+	>
+		<Confetti
+			x={[-5, 5]}
+			y={[0, 0.1]}
+			delay={[500, 2000]}
+			infinite={true}
+			duration={5000}
+			amount={500}
+			fallDistance="100vh"
+		/>
+	</div>
+{/if}
 
 <div class="rounded-lg bg-white shadow-xl dark:bg-gray-800">
 	<!-- Progress Indicator Component -->
@@ -48,7 +74,9 @@
 				<div>Status: {$timerStore.status}</div>
 				<div>Current Phase: {$timerStore.currentPhaseIndex + 1} of {$timerStore.phases.length}</div>
 				<div>Time Remaining: {$timerStore.timeRemaining}ms</div>
-				<div>Phase Duration: {$timerStore.phases[$timerStore.currentPhaseIndex].durationMinutes}min</div>
+				<div>
+					Phase Duration: {$timerStore.phases[$timerStore.currentPhaseIndex].durationMinutes}min
+				</div>
 				<div>Phase Volume: {$timerStore.phases[$timerStore.currentPhaseIndex].volumeLevel}%</div>
 			</div>
 
@@ -67,7 +95,7 @@
 				<div class="font-medium mb-1">Phase Progress</div>
 				{#each $timerStore.phases as phase, i}
 					<div class="flex items-center gap-2">
-						<span class="{i === $timerStore.currentPhaseIndex ? 'text-primary' : ''}">
+						<span class={i === $timerStore.currentPhaseIndex ? 'text-primary' : ''}>
 							{i + 1}.
 						</span>
 						<span>{phase.action}</span>

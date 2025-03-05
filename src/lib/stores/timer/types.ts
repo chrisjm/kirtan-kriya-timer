@@ -29,6 +29,7 @@ export interface TimerState {
   status: TimerStatus;
   timeRemaining: number;
   activeTimerId?: string;
+  meditationCompleted: boolean;
 }
 
 export interface TimerEvent {
