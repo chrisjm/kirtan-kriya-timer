@@ -1,5 +1,6 @@
 import * as Tone from 'tone';
 import type { MantraNote } from '$lib/stores/soundStore';
+import { browser } from '$app/environment';
 
 export interface AudioEngine {
   synth: Tone.Synth;
@@ -19,6 +20,11 @@ export const createAudioEngine = async (
   mantraNotes: MantraNote[],
   onMantraChange: (index: number) => void
 ): Promise<AudioEngine> => {
+  // Check if we're in a browser environment
+  if (!browser) {
+    throw new Error('Audio engine can only be created in a browser environment');
+  }
+  
   // Start with a clean audio context
   await Tone.start();
   // Initialize volume control

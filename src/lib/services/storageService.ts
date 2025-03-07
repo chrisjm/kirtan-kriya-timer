@@ -1,3 +1,5 @@
+import { browser } from '$app/environment';
+
 type Theme = 'light' | 'dark' | 'auto';
 
 interface StorageState {
@@ -17,7 +19,7 @@ const defaultState: StorageState = {
 };
 
 function getState(): StorageState {
-  if (typeof window === 'undefined') return defaultState;
+  if (!browser) return defaultState;
 
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -29,7 +31,7 @@ function getState(): StorageState {
 }
 
 function setState(partialState: Partial<StorageState>): void {
-  if (typeof window === 'undefined') return;
+  if (!browser) return;
 
   try {
     const currentState = getState();

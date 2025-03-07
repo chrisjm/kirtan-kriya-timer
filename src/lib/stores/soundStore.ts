@@ -4,6 +4,7 @@ import { getSoundSettings, setSoundSettings } from '../services/storageService';
 import * as Tone from 'tone';
 import { TimerStatus } from './timer/types';
 import { volumeToDecibels, type AudioEngine } from '$lib/services/audioService';
+import { browser } from '$app/environment';
 
 // The four syllables of the Kirtan Kriya mantra with corresponding notes
 export interface MantraNote {
@@ -29,7 +30,8 @@ export interface SoundState {
 
 function createSoundStore() {
   // Load initial sound settings from storage
-  const settings = getSoundSettings();
+  // Only access browser APIs if in browser environment
+  const settings = browser ? getSoundSettings() : { volume: 50, isMuted: false };
   let audioEngine: AudioEngine | null = null;
   let isStarted = false;
 
@@ -44,6 +46,9 @@ function createSoundStore() {
 
   // Helper to update sound playback based on current state
   const updateSoundPlayback = async () => {
+    // Skip if not in browser environment
+    if (!browser) return;
+    
     const state = get({ subscribe });
     if (!state.isInitialized || !audioEngine) return;
 
@@ -108,7 +113,10 @@ function createSoundStore() {
   const setVolume = function (level: number): void {
     update(state => {
       const newState = { ...state, volumeLevel: level };
-      setSoundSettings({ volume: level, isMuted: state.isMuted });
+      // Only save settings if in browser environment
+      if (browser) {
+        setSoundSettings({ volume: level, isMuted: state.isMuted });
+      }
       return newState;
     });
     updateSoundPlayback();
@@ -117,7 +125,10 @@ function createSoundStore() {
   const toggleMute = function (): void {
     update(state => {
       const newState = { ...state, isMuted: !state.isMuted };
-      setSoundSettings({ volume: state.volumeLevel, isMuted: newState.isMuted });
+      // Only save settings if in browser environment
+      if (browser) {
+        setSoundSettings({ volume: state.volumeLevel, isMuted: newState.isMuted });
+      }
       return newState;
     });
     updateSoundPlayback();
