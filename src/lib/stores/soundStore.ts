@@ -26,12 +26,13 @@ export interface SoundState {
   isMuted: boolean;
   isTimerRunning: boolean;
   currentPhaseVolumeLevel?: number;
+  mantraPace: number; // BPM value that controls mantra playback speed
 }
 
 function createSoundStore() {
   // Load initial sound settings from storage
   // Only access browser APIs if in browser environment
-  const settings = browser ? getSoundSettings() : { volume: 50, isMuted: false };
+  const settings = browser ? getSoundSettings() : { volume: 50, isMuted: false, mantraPace: 60 };
   let audioEngine: AudioEngine | null = null;
   let isStarted = false;
 
@@ -41,7 +42,8 @@ function createSoundStore() {
     volumeLevel: settings.volume,
     currentMantra: undefined,
     isMuted: settings.isMuted,
-    isTimerRunning: false
+    isTimerRunning: false,
+    mantraPace: settings.mantraPace
   });
 
   // Helper to update sound playback based on current state
@@ -105,6 +107,22 @@ function createSoundStore() {
     update(state => ({ ...state, isInitialized: true }));
     updateSoundPlayback();
   }
+  
+  const setPace = function (pace: number): void {
+    update(state => {
+      const newState = { ...state, mantraPace: pace };
+      // Only save settings if in browser environment
+      if (browser) {
+        setSoundSettings({ volume: state.volumeLevel, isMuted: state.isMuted, mantraPace: pace });
+      }
+      return newState;
+    });
+    
+    // Update the BPM in the audio engine if it exists
+    if (audioEngine && browser) {
+      Tone.getTransport().bpm.value = pace;
+    }
+  }
 
   const updateCurrentMantra = function (index: number): void {
     update(state => ({ ...state, currentMantra: mantraNotes[index] }));
@@ -153,6 +171,7 @@ function createSoundStore() {
     setAudioEngine,
     setVolume,
     toggleMute,
+    setPace,
     cleanup,
     updateCurrentMantra,
   };
