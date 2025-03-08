@@ -2,24 +2,62 @@ import { writable, get } from 'svelte/store';
 import { getCurrentPhaseIndex, setCurrentPhaseIndex } from '../services/storageService';
 import { TimerStatus, type TimerState } from './timer/types.js';
 import { isValidTransition } from './timer/transitions.js';
-import { defaultPhases } from './timer/defaultPhases';
+import { defaultPhases, generatePhases } from './timer/defaultPhases';
 import { createMasterTimer } from './timer/masterTimer';
+import { intervalStore } from './intervalStore';
 
 // Create the writable store with enhanced initial state
 const createTimerStore = () => {
   const initialPhaseIndex = getCurrentPhaseIndex();
+  // Get current interval multiplier (default to 1 if not set)
+  let currentMultiplier = 1;
 
+  // Initial state uses default phases (with multiplier of 1)
   const initialState: TimerState = {
     phases: defaultPhases,
     currentPhaseIndex: initialPhaseIndex,
     status: TimerStatus.IDLE,
     timeRemaining: defaultPhases[initialPhaseIndex].durationMinutes * 60 * 1000,
     activeTimerId: undefined,
-    meditationCompleted: false
+    meditationCompleted: false,
+    intervalMultiplier: currentMultiplier
   };
 
   // Create store with initial state
   const { subscribe, update } = writable<TimerState>(initialState);
+
+  // Subscribe to interval store changes
+  const unsubscribeInterval = intervalStore.subscribe(multiplier => {
+    if (multiplier !== currentMultiplier) {
+      currentMultiplier = multiplier;
+      update(state => {
+        // Generate new phases with updated multiplier
+        const updatedPhases = generatePhases(multiplier);
+
+        // Preserve completion status of phases
+        updatedPhases.forEach((phase, index) => {
+          if (index < state.currentPhaseIndex) {
+            phase.completed = true;
+          } else if (index === state.currentPhaseIndex && state.phases[index].completed) {
+            phase.completed = true;
+          }
+        });
+
+        // Calculate new time remaining for current phase
+        const currentPhase = updatedPhases[state.currentPhaseIndex];
+        const newTimeRemaining = state.status === TimerStatus.IDLE
+          ? currentPhase.durationMinutes * 60 * 1000
+          : state.timeRemaining;
+
+        return {
+          ...state,
+          phases: updatedPhases,
+          timeRemaining: newTimeRemaining,
+          intervalMultiplier: multiplier
+        };
+      });
+    }
+  });
 
   // Create master timer
   const masterTimer = createMasterTimer({
@@ -198,6 +236,7 @@ const createTimerStore = () => {
     resetTimer,
     completeCurrentPhase,
     selectPhase,
+    setIntervalMultiplier: (multiplier: number) => intervalStore.setMultiplier(multiplier)
   };
 };
 
