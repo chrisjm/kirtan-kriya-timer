@@ -2,7 +2,6 @@
 	import Resources from '$lib/components/Resources.svelte';
 	import TimerDisplay from '$lib/components/TimerDisplay.svelte';
 	import AudioInitializer from '$lib/components/AudioInitializer.svelte';
-	import IntervalSelector from '$lib/components/IntervalSelector.svelte';
 
 	let title = 'Kirtan Kriya Timer';
 	let description =
@@ -20,7 +19,6 @@
 		<p class="text-lg text-gray-600 dark:text-gray-400">{description}</p>
 	</header>
 
-	<IntervalSelector />
 	<TimerDisplay />
 	<Resources />
 	<AudioInitializer />
