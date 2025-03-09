@@ -37,10 +37,12 @@ pointer-events: none;"
 
 <div class="rounded-lg bg-white shadow-xl dark:bg-gray-800">
 	<!-- Progress Indicator Component -->
-	<ProgressIndicator />
+	<section class="px-6 py-4">
+		<ProgressIndicator />
+	</section>
 
 	<!-- Timer Display -->
-	<section class="text-center p-6">
+	<section class="text-center px-6">
 		<!-- Timer status indicator -->
 
 		<!-- Time remaining display -->
@@ -58,10 +60,14 @@ pointer-events: none;"
 	</section>
 
 	<!-- Phase Selection with completion indicators -->
-	<PhaseSelection />
+	<section class="px-6 pb-4">
+		<PhaseSelection />
+	</section>
 
 	<!-- Sound Controls -->
-	<SoundControls />
+	<section class="px-6 pb-4">
+		<SoundControls />
+	</section>
 
 	<!-- Debug info during development -->
 	{#if import.meta.env.DEV}
