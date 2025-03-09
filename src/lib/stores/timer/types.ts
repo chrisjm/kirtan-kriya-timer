@@ -30,6 +30,7 @@ export interface TimerState {
   timeRemaining: number;
   activeTimerId?: string;
   meditationCompleted: boolean;
+  intervalMultiplier: number;
 }
 
 export interface TimerEvent {

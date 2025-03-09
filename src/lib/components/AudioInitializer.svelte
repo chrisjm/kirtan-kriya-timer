@@ -128,8 +128,11 @@
 			// First, try to resume the audio context
 			await Tone.start();
 
-			const audioEngine = await createAudioEngine($soundStore.volumeLevel, mantraNotes, (index) =>
-				soundStore.updateCurrentMantra(index)
+			const audioEngine = await createAudioEngine(
+				$soundStore.volumeLevel, 
+				mantraNotes, 
+				$soundStore.mantraPace, // Pass the mantra pace to the audio engine
+				(index) => soundStore.updateCurrentMantra(index)
 			);
 			soundStore.setAudioEngine(audioEngine);
 			isInitialized = true;

@@ -18,6 +18,7 @@ export const volumeToDecibels = (value: number): number => {
 export const createAudioEngine = async (
   initialVolume: number,
   mantraNotes: MantraNote[],
+  mantraPace: number,
   onMantraChange: (index: number) => void
 ): Promise<AudioEngine> => {
   // Check if we're in a browser environment
@@ -52,8 +53,8 @@ export const createAudioEngine = async (
     noteIndex = (noteIndex + 1) % mantraNotes.length;
   }, noteDuration);
 
-  // Set BPM
-  Tone.getTransport().bpm.value = 66;
+  // Set BPM based on the mantraPace parameter
+  Tone.getTransport().bpm.value = mantraPace;
 
   return { synth, vol, loop };
 };

@@ -48,9 +48,11 @@
 {#if mounted}
 	<button
 		type="button"
-		class="rounded-lg p-2.5 text-sm hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+		class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 		on:click={cycleTheme}
 		aria-label="Toggle theme"
+		tabindex="0"
+		on:keydown={(e) => e.key === 'Enter' && cycleTheme()}
 	>
 		{#if theme === 'dark' || (theme === 'auto' && getSystemTheme() === 'dark')}
 			<Moon class="h-5 w-5" />

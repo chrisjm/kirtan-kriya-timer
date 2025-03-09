@@ -6,6 +6,7 @@ interface StorageState {
   currentPhaseIndex: number;
   soundVolume: number;
   isMuted: boolean;
+  mantraPace: number;
   theme?: Theme;
 }
 
@@ -15,6 +16,7 @@ const defaultState: StorageState = {
   currentPhaseIndex: 0,
   soundVolume: 70,
   isMuted: true,
+  mantraPace: 60, // Default pace: 60 BPM (4 seconds per mantra cycle)
   theme: 'auto'
 };
 
@@ -50,18 +52,20 @@ export function setCurrentPhaseIndex(index: number): void {
   setState({ currentPhaseIndex: index });
 }
 
-export function getSoundSettings(): { volume: number; isMuted: boolean } {
+export function getSoundSettings(): { volume: number; isMuted: boolean; mantraPace: number } {
   const state = getState();
   return {
     volume: state.soundVolume,
-    isMuted: state.isMuted
+    isMuted: state.isMuted,
+    mantraPace: state.mantraPace
   };
 }
 
-export function setSoundSettings(settings: { volume?: number; isMuted?: boolean }): void {
+export function setSoundSettings(settings: { volume?: number; isMuted?: boolean; mantraPace?: number }): void {
   const updates: Partial<StorageState> = {};
   if (settings.volume !== undefined) updates.soundVolume = settings.volume;
   if (settings.isMuted !== undefined) updates.isMuted = settings.isMuted;
+  if (settings.mantraPace !== undefined) updates.mantraPace = settings.mantraPace;
   setState(updates);
 }
 
