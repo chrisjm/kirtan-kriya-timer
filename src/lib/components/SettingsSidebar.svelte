@@ -17,8 +17,12 @@
 <!-- Backdrop overlay when sidebar is open -->
 {#if $uiStore.isSettingsSidebarOpen}
 	<div
+		role="button"
+		tabindex="0"
+		aria-label="Close settings"
 		class="fixed inset-0 bg-black/30 dark:bg-black/50 z-40 transition-opacity duration-300"
 		on:click={handleClickOutside}
+		on:keydown={(e) => e.key === 'Escape' && closeSettingsSidebar()}
 		transition:fly={{ duration: 200, x: 0, opacity: 1 }}
 	/>
 {/if}
