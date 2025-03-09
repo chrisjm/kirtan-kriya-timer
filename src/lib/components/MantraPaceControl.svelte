@@ -2,8 +2,8 @@
 	import { soundStore } from '$lib/stores/soundStore';
 	import { Clock } from 'lucide-svelte';
 
-	// Calculate seconds per mantra cycle based on BPM
-	$: secondsPerCycle = Math.round((60 / $soundStore.mantraPace) * 4 * 10) / 10;
+	// Calculate seconds per mantra tone based on BPM (using half note duration)
+	$: secondsPerTone = Math.round((60 / $soundStore.mantraPace) * 2 * 10) / 10;
 
 	// Handle pace change from slider
 	const handlePaceChange = (event: Event) => {
@@ -23,7 +23,7 @@
 				<span>Speed</span>
 			</label>
 			<span class="text-xs text-gray-500">
-				{secondsPerCycle}s per cycle
+				{secondsPerTone}s per tone
 			</span>
 		</div>
 
