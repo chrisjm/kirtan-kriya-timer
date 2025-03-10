@@ -5,7 +5,6 @@
 	import TimerControls from './TimerControls.svelte';
 	import PhaseSelection from './PhaseSelection.svelte';
 	import CurrentPhase from './CurrentPhase.svelte';
-	import FingerPlacement from './FingerPlacement.svelte';
 	import SoundControls from './SoundControls.svelte';
 	import { millisecondsToSeconds, secondsToMinutes, padWithZeroes } from '$lib/utils/formatUtils';
 	import { Confetti } from 'svelte-confetti';
@@ -58,9 +57,6 @@ pointer-events: none;"
 
 		<!-- Current Phase Info - Will auto-update based on current phase -->
 		<CurrentPhase />
-
-		<!-- Finger Placement - Shows which fingers to touch during mantras -->
-		<FingerPlacement />
 	</section>
 
 	<!-- Phase Selection with completion indicators -->
