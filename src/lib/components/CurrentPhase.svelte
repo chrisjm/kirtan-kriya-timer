@@ -23,6 +23,7 @@
 	$: mantraText = $soundStore.currentMantra?.mantra || ('' as MantraType);
 	$: isTimerRunning = $timerStore.status === TimerStatus.RUNNING;
 	$: activeFingerData = fingerData.find((data) => data.mantra === mantraText);
+	$: isAudioInitialized = $soundStore.isInitialized;
 </script>
 
 <div class="rounded-lg bg-gray-50 dark:bg-gray-800 p-4 my-4 shadow-sm">
@@ -33,7 +34,7 @@
 				Phase {currentPhaseIndex + 1}: {actionLabel}
 			</h3>
 
-			{#if currentMantra}
+			{#if isAudioInitialized && currentMantra}
 				<div class="mt-2" transition:fade={{ duration: 200 }}>
 					<span
 						class="inline-flex items-center px-2.5 py-0.5 rounded-full text-base font-medium bg-primary text-white"
@@ -49,19 +50,18 @@
 		>
 			<h4 class="text-center md:text-left text-lg font-semibold mb-2">Finger Placement</h4>
 
-			{#if mantraText && isTimerRunning}
+			{#if isAudioInitialized && mantraText}
 				<div class="text-center md:text-left" transition:fade={{ duration: 200 }}>
 					<p class="font-medium">
 						<span class="text-primary font-bold">{mantraText}</span>: Touch
 						{#if activeFingerData}
-							<span class="text-primary font-bold">{activeFingerData.finger.toLowerCase()}</span> to
-							thumb
+							<span class="text-primary font-bold">{activeFingerData.finger.toLowerCase()}</span> to thumb
 						{/if}
 					</p>
 				</div>
 			{:else}
 				<p class="text-center md:text-left text-gray-500 dark:text-gray-400">
-					Start meditation to see finger placements
+					Initialize audio to see mantra and finger placements
 				</p>
 			{/if}
 		</div>
