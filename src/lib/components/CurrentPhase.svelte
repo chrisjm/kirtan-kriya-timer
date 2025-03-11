@@ -2,7 +2,6 @@
 	import { timerStore } from '$lib/stores/timerStore';
 	import { soundStore } from '$lib/stores/soundStore';
 	import { fade } from 'svelte/transition';
-	import { TimerStatus } from '$lib/stores/timer/types';
 
 	// Define valid mantra types
 	type MantraType = 'Saa' | 'Taa' | 'Naa' | 'Maa' | '';
@@ -21,7 +20,6 @@
 	$: actionLabel = currentPhase?.action || 'Loading...';
 	$: currentMantra = $soundStore.currentMantra;
 	$: mantraText = $soundStore.currentMantra?.mantra || ('' as MantraType);
-	$: isTimerRunning = $timerStore.status === TimerStatus.RUNNING;
 	$: activeFingerData = fingerData.find((data) => data.mantra === mantraText);
 	$: isAudioInitialized = $soundStore.isInitialized;
 </script>
@@ -55,13 +53,14 @@
 					<p class="font-medium">
 						<span class="text-primary font-bold">{mantraText}</span>: Touch
 						{#if activeFingerData}
-							<span class="text-primary font-bold">{activeFingerData.finger.toLowerCase()}</span> to thumb
+							<span class="text-primary font-bold">{activeFingerData.finger.toLowerCase()}</span> to
+							thumb
 						{/if}
 					</p>
 				</div>
 			{:else}
 				<p class="text-center md:text-left text-gray-500 dark:text-gray-400">
-					Initialize audio to see mantra and finger placements
+					Enable audio to see mantra and finger placements
 				</p>
 			{/if}
 		</div>

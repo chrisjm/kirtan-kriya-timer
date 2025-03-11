@@ -1,43 +1,53 @@
 <script lang="ts">
-	import { soundStore } from '$lib/stores/soundStore';
-	import { Volume2, VolumeX } from 'lucide-svelte';
+	import { soundStore, mantraNotes } from '$lib/stores/soundStore';
+	import { createAudioEngine } from '$lib/services/audioService';
+	import { onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
+
+	// Import the new components
+	import AudioInitializer from '$lib/components/audio/AudioInitializer.svelte';
+	import VolumeControls from '$lib/components/audio/VolumeControls.svelte';
+
+	let isInitialized = false;
+
+	/**
+	 * Handle audio initialization event from AudioInitializer component
+	 */
+	const handleAudioInitialized = async (event: CustomEvent<{ success: boolean }>) => {
+		if (!event.detail.success || !browser) return;
+
+		try {
+			// Create the audio engine with the current sound settings
+			const audioEngine = await createAudioEngine(
+				$soundStore.volumeLevel,
+				mantraNotes,
+				$soundStore.mantraPace,
+				(index) => soundStore.updateCurrentMantra(index)
+			);
+
+			// Set the audio engine in the sound store
+			soundStore.setAudioEngine(audioEngine);
+			isInitialized = true;
+		} catch (error) {
+			console.error('Failed to create audio engine:', error);
+			isInitialized = false;
+		}
+	};
+
+	// Clean up on component destruction
+	onDestroy(() => {
+		if (browser && isInitialized) {
+			soundStore.cleanup();
+		}
+	});
 </script>
 
-<div class="flex flex-col gap-4">
-	<div class="flex gap-3 items-center">
-		<label class="cursor-pointer label flex items-center gap-2">
-			<span class="label-text font-medium flex items-center gap-1">
-				{#if $soundStore.isMuted}
-					<VolumeX class="h-5 w-5" />
-				{:else}
-					<Volume2 class="h-5 w-5" />
-				{/if}
-				Sound
-			</span>
-			<input
-				type="checkbox"
-				class="toggle toggle-primary"
-				checked={!$soundStore.isMuted}
-				on:click={soundStore.toggleMute}
-				title="Toggle sound on/off"
-			/>
-		</label>
-		<label class="label flex-1 flex items-center gap-2">
-			<span class="label-text">Volume: {$soundStore.volumeLevel}</span>
-			<input
-				type="range"
-				min="0"
-				max="100"
-				value={$soundStore.volumeLevel}
-				class="range"
-				step="1"
-				disabled={$soundStore.isMuted}
-				on:input={(e) => {
-					if (e.target instanceof HTMLInputElement) {
-						soundStore.setVolume(parseInt(e.target.value));
-					}
-				}}
-			/>
-		</label>
-	</div>
+<div class="flex flex-col gap-4 p-4 bg-base-200 rounded-lg shadow-sm">
+	<!-- Sound Controls Section -->
+	{#if isInitialized}
+		<VolumeControls />
+	{/if}
+
+	<!-- Audio Initialization Section -->
+	<AudioInitializer {isInitialized} on:initialized={handleAudioInitialized} />
 </div>
