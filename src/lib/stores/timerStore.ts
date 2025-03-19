@@ -228,6 +228,11 @@ const createTimerStore = () => {
     });
   }
 
+  // Cleanup function to prevent memory leaks
+  const destroy = () => {
+    unsubscribeInterval();
+  };
+
   return {
     subscribe,
     getStatus,
@@ -236,7 +241,8 @@ const createTimerStore = () => {
     resetTimer,
     completeCurrentPhase,
     selectPhase,
-    setIntervalMultiplier: (multiplier: number) => intervalStore.setMultiplier(multiplier)
+    setIntervalMultiplier: (multiplier: number) => intervalStore.setMultiplier(multiplier),
+    destroy
   };
 };
 
