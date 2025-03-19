@@ -1,17 +1,27 @@
 <script lang="ts">
 	import TimerDisplay from '$lib/components/TimerDisplay.svelte';
-	import { onDestroy } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { timerStore } from '$lib/stores/timerStore';
+	import { soundStore } from '$lib/stores/soundStore';
+	import { navigationStore } from '$lib/stores/navigationStore';
 	import { TimerStatus } from '$lib/stores/timer/types';
 
 	let title = 'Kirtan Kriya Timer';
 	let description =
 		'A 12-minute meditation practice for improved brain function and spiritual growth';
-	
+
+	onMount(() => {
+		navigationStore.setAudioInitialized($soundStore.isInitialized);
+	});
+
 	// Pause the timer when navigating away from the main page
 	onDestroy(() => {
-		// Only pause if the timer is running
-		if (timerStore.getStatus() === TimerStatus.RUNNING) {
+		// Save the current timer state to the navigation store
+		const isRunning = timerStore.getStatus() === TimerStatus.RUNNING;
+		navigationStore.setTimerRunning(isRunning);
+		navigationStore.setAudioInitialized($soundStore.isInitialized);
+
+		if (isRunning) {
 			console.log('Pausing timer due to navigation');
 			timerStore.pauseTimer();
 		}
