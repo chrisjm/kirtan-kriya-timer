@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Resources from '$lib/components/Resources.svelte';
 	import TimerDisplay from '$lib/components/TimerDisplay.svelte';
 
 	let title = 'Kirtan Kriya Timer';
@@ -19,5 +18,19 @@
 	</header>
 
 	<TimerDisplay />
-	<Resources />
+
+	<!-- FAQ Link Section -->
+	<section class="my-6">
+		<div
+			class="border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden p-4 text-center"
+		>
+			<p class="mb-3">Have questions about Kirtan Kriya meditation?</p>
+			<a
+				href="/faq"
+				class="inline-block px-4 py-2 bg-primary text-white rounded-md hover:bg-success transition-colors"
+			>
+				View Frequently Asked Questions
+			</a>
+		</div>
+	</section>
 </main>
