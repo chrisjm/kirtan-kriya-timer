@@ -4,6 +4,7 @@
 	import * as Tone from 'tone';
 	import { timerStore } from '$lib/stores/timerStore';
 	import { TimerStatus } from '$lib/stores/timer/types';
+	import { navigationStore } from '$lib/stores/navigationStore';
 	import {
 		isWakeLockSupported,
 		requestWakeLock,
@@ -126,6 +127,10 @@
 			await Tone.start();
 
 			isInitialized = true;
+
+			// Update the navigation store with the audio initialization state
+			navigationStore.setAudioInitialized(true);
+
 			dispatch('initialized', { success: true });
 
 			// If timer is already running, request wake lock
@@ -168,7 +173,9 @@
 		{#if !isInitialized}
 			<button
 				type="button"
-				class="px-3 py-1 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 {isLoading ? 'opacity-75' : ''} transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+				class="px-3 py-1 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 {isLoading
+					? 'opacity-75'
+					: ''} transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
 				on:click={initializeAudio}
 				disabled={isLoading}
 				aria-label="Enable audio"
