@@ -1,10 +1,10 @@
-## What is Kirtan Kriya (KK) meditation and what makes it unique for potential Alzheimer's Disease (AD) prevention?
+## What is Kirtan Kriya meditation and what makes it unique for potential Alzheimers prevention?
 
-Kirtan Kriya (KK) is a 12-minute meditation technique from Kundalini Yoga that involves chanting the mantra "Saa Taa Naa Maa" while simultaneously performing specific finger movements (mudras) and visualizing the sound flowing in an "L" shape through the head. KK is unique due to its combination of sound, touch (through the fingertips), visualization, and a set duration. Research suggests that this multi-sensory approach activates specific brain regions, increases cerebral blood flow, and provides multiple benefits in a short amount of time (12 minutes daily), making it easy for aging individuals to learn and practice.
+Kirtan Kriya is a 12-minute meditation technique from Kundalini Yoga that involves chanting the mantra "Saa Taa Naa Maa" while simultaneously performing specific finger movements (mudras) and visualizing the sound flowing in an "L" shape through the head. Kirtan Kriya is unique due to its combination of sound, touch (through the fingertips), visualization, and a set duration. Research suggests that this multi-sensory approach activates specific brain regions, increases cerebral blood flow, and provides multiple benefits in a short amount of time (12 minutes daily), making it easy for aging individuals to learn and practice.
 
-## What is the basic method of Kirtan Kriya (KK)?
+## What is the basic method of Kirtan Kriya?
 
-The basic method of Kirtan Kriya (KK) meditation involves five specific actions in addition to maintaining a comfortable posture and focusing concentration. It is a multifaceted, multisensory exercise that takes only one 12-minute session a day and can be performed by individuals of any age with or without memory loss, sometimes with appropriate supervision.
+The basic method of Kirtan Kriya meditation involves five specific actions in addition to maintaining a comfortable posture and focusing concentration. It is a multifaceted, multisensory exercise that takes only one 12-minute session a day and can be performed by individuals of any age with or without memory loss, sometimes with appropriate supervision.
 
 Here are the key components of the basic method:
 
@@ -28,10 +28,10 @@ Here are the key components of the basic method:
 
 When outside thoughts intrude, simply return your focus to the sounds and visualization. This multifaceted approach engages auditory, tactile, and visual senses
 
-## How does stress contribute to the risk of Alzheimer's Disease (AD)?
+## How does stress contribute to the risk of Alzheimers?
 
-Chronic stress has significant negative biochemical effects on the body and brain, which are implicated in the development of AD. Research shows that stress can diminish telomerase levels, an enzyme crucial for maintaining the protective caps of DNA called telomeres. Shorter telomeres are associated with inflammation, accelerated aging, and an increased risk of AD. Furthermore, chronic psychological distress has been linked to a higher risk of developing Alzheimer's disease in older age.
+Chronic stress has significant negative biochemical effects on the body and brain, which are implicated in the development of Alzheimers. Research shows that stress can diminish telomerase levels, an enzyme crucial for maintaining the protective caps of DNA called telomeres. Shorter telomeres are associated with inflammation, accelerated aging, and an increased risk of Alzheimers. Furthermore, chronic psychological distress has been linked to a higher risk of developing Alzheimers disease in older age.
 
 ## What specific cognitive and psychological benefits have been associated with Kirtan Kriya practice?
 
-Studies on Kirtan Kriya have shown improvements in memory in individuals with subjective cognitive decline and mild cognitive impairment. Beyond cognition, KK has been linked to reduced stress, anxiety, and depression, as well as improved sleep quality. Participants practicing KK have also reported increased psychological well-being or spiritual fitness, which is considered important for maintaining cognitive function and preventing Alzheimer's Disease (AD).
+Studies on Kirtan Kriya have shown improvements in memory in individuals with subjective cognitive decline and mild cognitive impairment. Beyond cognition, Kirtan Kriya has been linked to reduced stress, anxiety, and depression, as well as improved sleep quality. Participants practicing Kirtan Kriya have also reported increased psychological well-being or spiritual fitness, which is considered important for maintaining cognitive function and preventing Alzheimers.
