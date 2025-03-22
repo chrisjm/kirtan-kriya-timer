@@ -218,20 +218,8 @@ function createSoundStore() {
 
     // If audio engine is initialized, update it
     if (audioEngine && browser) {
-      // We need to recreate the audio engine to apply the new pitches
-      import('$lib/services/audioService').then(({ createAudioEngine }) => {
-        createAudioEngine(get({ subscribe }).volumeLevel, mantraNotes, get({ subscribe }).mantraPace, updateCurrentMantra)
-          .then((engine: AudioEngine) => {
-            // Clean up old engine
-            audioEngine?.synth.dispose();
-            audioEngine?.vol.dispose();
-            audioEngine?.loop.dispose();
-
-            // Set new engine
-            setAudioEngine(engine);
-          })
-          .catch((error: Error) => console.error('Error recreating audio engine:', error));
-      });
+      // Use the updatePitches method instead of recreating the engine
+      audioEngine.updatePitches(mantraNotes);
     }
   };
 

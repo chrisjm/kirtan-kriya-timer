@@ -6,6 +6,7 @@ export interface AudioEngine {
   synth: Tone.Synth;
   vol: Tone.Volume;
   loop: Tone.Loop;
+  updatePitches: (mantraNotes: MantraNote[]) => void;
 }
 
 // Convert volume percentage to decibels for Tone.js
@@ -56,5 +57,17 @@ export const createAudioEngine = async (
   // Set BPM based on the mantraPace parameter
   Tone.getTransport().bpm.value = mantraPace;
 
-  return { synth, vol, loop };
+  // Function to update pitches without recreating the engine
+  const updatePitches = (newMantraNotes: MantraNote[]): void => {
+    // Reset the note index to prevent out-of-bounds errors if the array length changes
+    noteIndex = 0;
+    
+    // Update the mantraNotes reference
+    // Since we're passing a reference to the mantraNotes array,
+    // we need to make sure we're updating the same reference
+    mantraNotes.length = 0;
+    newMantraNotes.forEach(note => mantraNotes.push(note));
+  };
+
+  return { synth, vol, loop, updatePitches };
 };
