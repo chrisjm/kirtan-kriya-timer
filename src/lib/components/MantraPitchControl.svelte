@@ -8,10 +8,10 @@
 	// Available musical keys - limited to D, E, F, G, and A
 	const musicalKeys = [
 		{ id: 'D', name: 'D' },
-		{ id: 'E', name: 'E (default)' },
+		{ id: 'E', name: 'E' },
 		{ id: 'F', name: 'F' },
 		{ id: 'G', name: 'G' },
-		{ id: 'A', name: 'A' }
+		{ id: 'A', name: 'A (default)' }
 	];
 
 	// Base pattern intervals (relative to the key)
@@ -21,7 +21,7 @@
 	const fixedOctave = 3; // Octave 2 in musical notation is actually 3 in Tone.js
 
 	// Current key setting with default
-	let selectedKey = 'E';
+	let selectedKey = 'A';
 	// Flag to prevent reactive updates during initialization
 	let isInitialized = false;
 	// Flag to prevent unnecessary updates when we're the ones changing the pitches
@@ -174,17 +174,17 @@
 					{/each}
 				</select>
 				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-					Adjust to match your vocal range (fixed at Octave 2)
+					Adjust the key to find comfortable tones for your voice.
+				</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+					Higher keys (G, A) are typically better for higher voices, while lower keys (D, E) work well
+					for lower voices.
 				</p>
 			</div>
 		</div>
 
 		<div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
 			<p>Current pitch pattern: {$soundStore.mantraPitches.join(', ')}</p>
-			<p class="mt-1">
-				Adjust the key to find comfortable tones for your voice. Higher keys (G, A) are typically
-				better for female voices, while lower keys (D, E) work well for male voices.
-			</p>
 		</div>
 	</div>
 </div>
