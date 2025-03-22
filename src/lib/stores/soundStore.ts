@@ -12,12 +12,25 @@ export interface MantraNote {
   mantra: string;
 }
 
-export const mantraNotes: MantraNote[] = [
-  { pitch: 'E3', mantra: 'Saa' },
-  { pitch: 'D3', mantra: 'Taa' },
-  { pitch: 'C3', mantra: 'Naa' },
-  { pitch: 'D3', mantra: 'Maa' }
-];
+// Default mantra notes if not provided from settings
+const defaultPitches = ['E3', 'D3', 'C3', 'D3'];
+
+// The mantra syllables
+const mantraSyllables = ['Saa', 'Taa', 'Naa', 'Maa'];
+
+// Helper function to update mantra notes with new pitches
+function updateMantraNotes(pitches: string[]): void {
+  mantraNotes = mantraSyllables.map((mantra, index) => ({
+    pitch: pitches[index],
+    mantra
+  }));
+}
+
+// Create mantra notes array - will be updated with current pitches
+export let mantraNotes: MantraNote[] = mantraSyllables.map((mantra, index) => ({
+  pitch: defaultPitches[index],
+  mantra
+}));
 
 export interface SoundState {
   isInitialized: boolean;
@@ -27,14 +40,25 @@ export interface SoundState {
   isTimerRunning: boolean;
   currentPhaseVolumeLevel?: number;
   mantraPace: number; // BPM value that controls mantra playback speed
+  mantraPitches: string[]; // Pitch values for each mantra syllable
 }
 
 function createSoundStore() {
   // Load initial sound settings from storage
   // Only access browser APIs if in browser environment
-  const settings = browser ? getSoundSettings() : { volume: 50, isMuted: false, mantraPace: 60 };
+  const settings = browser ? getSoundSettings() : {
+    volume: 50,
+    isMuted: false,
+    mantraPace: 60,
+    mantraPitches: defaultPitches
+  };
   let audioEngine: AudioEngine | null = null;
   let isStarted = false;
+
+  // Update mantraNotes with settings from storage
+  if (settings.mantraPitches) {
+    updateMantraNotes(settings.mantraPitches);
+  }
 
   // Create the writable store with initial state
   const { subscribe, update } = writable<SoundState>({
@@ -43,14 +67,15 @@ function createSoundStore() {
     currentMantra: undefined,
     isMuted: settings.isMuted,
     isTimerRunning: false,
-    mantraPace: settings.mantraPace
+    mantraPace: settings.mantraPace,
+    mantraPitches: settings.mantraPitches
   });
 
   // Helper to update sound playback based on current state
   const updateSoundPlayback = async () => {
     // Skip if not in browser environment
     if (!browser) return;
-    
+
     const state = get({ subscribe });
     if (!state.isInitialized || !audioEngine) return;
 
@@ -107,7 +132,7 @@ function createSoundStore() {
     update(state => ({ ...state, isInitialized: true }));
     updateSoundPlayback();
   }
-  
+
   const setPace = function (pace: number): void {
     update(state => {
       const newState = { ...state, mantraPace: pace };
@@ -117,7 +142,7 @@ function createSoundStore() {
       }
       return newState;
     });
-    
+
     // Update the BPM in the audio engine if it exists
     if (audioEngine && browser) {
       Tone.getTransport().bpm.value = pace;
@@ -166,12 +191,57 @@ function createSoundStore() {
     }));
   }
 
+  // Update the mantra notes array with new pitches
+  const setPitches = function (pitches: string[]): void {
+    if (pitches.length !== mantraSyllables.length) {
+      console.error('Invalid pitch array length. Expected', mantraSyllables.length, 'got', pitches.length);
+      return;
+    }
+
+    // Update the global mantraNotes array
+    updateMantraNotes(pitches);
+
+    // Update the store state
+    update(state => {
+      const newState = { ...state, mantraPitches: pitches };
+      // Only save settings if in browser environment
+      if (browser) {
+        setSoundSettings({
+          volume: state.volumeLevel,
+          isMuted: state.isMuted,
+          mantraPace: state.mantraPace,
+          mantraPitches: pitches
+        });
+      }
+      return newState;
+    });
+
+    // If audio engine is initialized, update it
+    if (audioEngine && browser) {
+      // We need to recreate the audio engine to apply the new pitches
+      import('$lib/services/audioService').then(({ createAudioEngine }) => {
+        createAudioEngine(get({ subscribe }).volumeLevel, mantraNotes, get({ subscribe }).mantraPace, updateCurrentMantra)
+          .then((engine: AudioEngine) => {
+            // Clean up old engine
+            audioEngine?.synth.dispose();
+            audioEngine?.vol.dispose();
+            audioEngine?.loop.dispose();
+
+            // Set new engine
+            setAudioEngine(engine);
+          })
+          .catch((error: Error) => console.error('Error recreating audio engine:', error));
+      });
+    }
+  };
+
   return {
     subscribe,
     setAudioEngine,
     setVolume,
     toggleMute,
     setPace,
+    setPitches,
     cleanup,
     updateCurrentMantra,
   };

@@ -12,16 +12,7 @@
 
 {#if $timerStore.meditationCompleted}
 	<div
-		style="
-position: fixed;
-top: -50px;
-left: 0;
-height: 100vh;
-width: 100vw;
-display: flex;
-justify-content: center;
-overflow: hidden;
-pointer-events: none;"
+		class="fixed -top-[50px] left-0 h-screen w-screen flex justify-center overflow-hidden pointer-events-none"
 	>
 		<Confetti
 			x={[-5, 5]}

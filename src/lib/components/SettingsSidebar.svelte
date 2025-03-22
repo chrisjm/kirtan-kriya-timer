@@ -2,6 +2,7 @@
 	import { uiStore, closeSettingsSidebar } from '$lib/stores/uiStore';
 	import IntervalSelector from './IntervalSelector.svelte';
 	import MantraPaceControl from './MantraPaceControl.svelte';
+	import MantraPitchControl from './MantraPitchControl.svelte';
 	import { X } from 'lucide-svelte';
 	import { fly } from 'svelte/transition';
 
@@ -60,6 +61,9 @@
 
 			<!-- Mantra Pace Control -->
 			<MantraPaceControl />
+
+			<!-- Mantra Pitch Control -->
+			<MantraPitchControl />
 		</div>
 	</div>
 </aside>
