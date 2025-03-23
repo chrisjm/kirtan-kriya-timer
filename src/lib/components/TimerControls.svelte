@@ -2,8 +2,11 @@
 	import { TimerStatus } from '$lib/stores/timer/types';
 	import { timerStore } from '$lib/stores/timerStore';
 	import { Pause, Play, RotateCcw } from 'lucide-svelte';
+	import { initializeStorage } from '$lib/services/storageService';
 
 	function startTimer(): void {
+		// Ensure storage is initialized before starting the timer
+		initializeStorage();
 		timerStore.startTimer();
 	}
 

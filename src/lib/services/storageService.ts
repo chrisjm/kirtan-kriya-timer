@@ -18,11 +18,31 @@ const defaultState: StorageState = {
   currentPhaseIndex: 0,
   soundVolume: 70,
   isMuted: true,
-  mantraPace: 60,
-  mantraPitches: ['E3', 'D3', 'C3', 'D3'],
+  mantraPace: 68,
+  mantraPitches: ['A3', 'G3', 'F3', 'G3'],
   mantraKey: 'G',
   theme: 'auto'
 };
+
+/**
+ * Explicitly initializes the local storage with default values if it doesn't exist
+ * Returns true if storage was initialized, false if it already existed
+ */
+export function initializeStorage(): boolean {
+  if (!browser) return false;
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error initializing localStorage:', error);
+    return false;
+  }
+}
 
 function getState(): StorageState {
   if (!browser) return defaultState;

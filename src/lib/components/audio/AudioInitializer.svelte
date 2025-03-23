@@ -5,6 +5,7 @@
 	import { timerStore } from '$lib/stores/timerStore';
 	import { TimerStatus } from '$lib/stores/timer/types';
 	import { navigationStore } from '$lib/stores/navigationStore';
+	import { initializeStorage } from '$lib/services/storageService';
 	import {
 		isWakeLockSupported,
 		requestWakeLock,
@@ -123,6 +124,9 @@
 
 		isLoading = true;
 		try {
+			// Ensure storage is initialized before enabling audio
+			initializeStorage();
+			
 			// First, try to resume the audio context
 			await Tone.start();
 
