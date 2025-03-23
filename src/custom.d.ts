@@ -3,3 +3,8 @@ declare module '*.md' {
   const component: ComponentType<SvelteComponentTyped>;
   export default component;
 }
+
+declare module '*.svg' {
+  const content: string;
+  export default content;
+}

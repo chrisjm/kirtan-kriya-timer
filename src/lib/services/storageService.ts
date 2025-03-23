@@ -7,6 +7,8 @@ interface StorageState {
   soundVolume: number;
   isMuted: boolean;
   mantraPace: number;
+  mantraPitches: string[];
+  mantraKey: string;
   theme?: Theme;
 }
 
@@ -16,7 +18,9 @@ const defaultState: StorageState = {
   currentPhaseIndex: 0,
   soundVolume: 70,
   isMuted: true,
-  mantraPace: 60, // Default pace: 60 BPM (4 seconds per mantra cycle)
+  mantraPace: 60,
+  mantraPitches: ['E3', 'D3', 'C3', 'D3'],
+  mantraKey: 'G',
   theme: 'auto'
 };
 
@@ -52,20 +56,24 @@ export function setCurrentPhaseIndex(index: number): void {
   setState({ currentPhaseIndex: index });
 }
 
-export function getSoundSettings(): { volume: number; isMuted: boolean; mantraPace: number } {
+export function getSoundSettings(): { volume: number; isMuted: boolean; mantraPace: number; mantraPitches: string[]; mantraKey: string } {
   const state = getState();
   return {
     volume: state.soundVolume,
     isMuted: state.isMuted,
-    mantraPace: state.mantraPace
+    mantraPace: state.mantraPace,
+    mantraPitches: state.mantraPitches ?? defaultState.mantraPitches,
+    mantraKey: state.mantraKey ?? defaultState.mantraKey
   };
 }
 
-export function setSoundSettings(settings: { volume?: number; isMuted?: boolean; mantraPace?: number }): void {
+export function setSoundSettings(settings: { volume?: number; isMuted?: boolean; mantraPace?: number; mantraPitches?: string[]; mantraKey?: string }): void {
   const updates: Partial<StorageState> = {};
   if (settings.volume !== undefined) updates.soundVolume = settings.volume;
   if (settings.isMuted !== undefined) updates.isMuted = settings.isMuted;
   if (settings.mantraPace !== undefined) updates.mantraPace = settings.mantraPace;
+  if (settings.mantraPitches !== undefined) updates.mantraPitches = settings.mantraPitches;
+  if (settings.mantraKey !== undefined) updates.mantraKey = settings.mantraKey;
   setState(updates);
 }
 
