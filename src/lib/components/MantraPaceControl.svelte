@@ -2,9 +2,6 @@
 	import { soundStore } from '$lib/stores/soundStore';
 	import { Clock } from 'lucide-svelte';
 
-	// Calculate seconds per mantra tone based on BPM (using half note duration)
-	$: secondsPerTone = Math.round((60 / $soundStore.mantraPace) * 2 * 10) / 10;
-
 	// Handle pace change from slider
 	const handlePaceChange = (event: Event) => {
 		if (event.target instanceof HTMLInputElement) {
@@ -20,11 +17,13 @@
 		<div class="flex items-center justify-between">
 			<label for="mantra-pace" class="flex items-center gap-2 text-sm font-medium">
 				<Clock class="h-4 w-4" />
-				<span>Speed</span>
+				<span>Tempo (BPM)</span>
 			</label>
-			<span class="text-xs text-gray-500">
-				{secondsPerTone}s per tone
-			</span>
+			<div class="flex flex-col items-end">
+				<span class="text-xs text-gray-500">
+					{$soundStore.mantraPace} BPM
+				</span>
+			</div>
 		</div>
 
 		<input
@@ -37,12 +36,12 @@
 			on:input={handlePaceChange}
 			class="range"
 			tabindex="0"
-			aria-label="Adjust mantra pace"
+			aria-label="Adjust mantra tempo in beats per minute"
 		/>
 
 		<div class="flex justify-between text-xs text-gray-500">
-			<span>Slower</span>
-			<span>Faster</span>
+			<span>Slower (24 BPM)</span>
+			<span>Faster (120 BPM)</span>
 		</div>
 	</div>
 </div>
