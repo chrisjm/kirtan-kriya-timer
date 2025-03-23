@@ -3,15 +3,15 @@
 	import { Music } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { getSoundSettings } from '$lib/services/storageService';
+	import { getSoundSettings, setSoundSettings } from '$lib/services/storageService';
 
 	// Available musical keys - limited to D, E, F, G, and A
 	const musicalKeys = [
 		{ id: 'D', name: 'D' },
 		{ id: 'E', name: 'E' },
 		{ id: 'F', name: 'F' },
-		{ id: 'G', name: 'G' },
-		{ id: 'A', name: 'A (default)' }
+		{ id: 'G', name: 'G (standard)' },
+		{ id: 'A', name: 'A' }
 	];
 
 	// Base pattern intervals (relative to the key)
@@ -33,14 +33,9 @@
 
 		try {
 			const soundSettings = getSoundSettings();
-			if (soundSettings.mantraPitches && soundSettings.mantraPitches.length === 4) {
-				const firstNote = soundSettings.mantraPitches[0];
-				if (firstNote) {
-					const keyPart = extractKey(firstNote);
-					if (keyPart && musicalKeys.some((k) => k.id === keyPart)) {
-						selectedKey = keyPart;
-					}
-				}
+			// First check if we have a saved mantraKey
+			if (soundSettings.mantraKey && musicalKeys.some((k) => k.id === soundSettings.mantraKey)) {
+				selectedKey = soundSettings.mantraKey;
 			}
 		} catch (error) {
 			console.error('Error loading pitch settings:', error);
@@ -90,9 +85,9 @@
 
 		// Then check if we should apply the current pitches from the store
 		if ($soundStore.mantraPitches && $soundStore.mantraPitches.length === 4) {
-			const firstNote = $soundStore.mantraPitches[0];
-			if (firstNote) {
-				const keyPart = extractKey(firstNote);
+			const keyNote = $soundStore.mantraPitches[1];
+			if (keyNote) {
+				const keyPart = extractKey(keyNote);
 
 				// Only update if the key from the store is different from our loaded settings
 				if (keyPart !== selectedKey && musicalKeys.some((k) => k.id === keyPart)) {
@@ -121,6 +116,14 @@
 			// Set flag to prevent reactive updates while we're changing the pitches
 			isUpdatingPitches = true;
 			soundStore.setPitches(newPitches);
+
+			// Save the key ID directly to local storage
+			if (browser) {
+				setSoundSettings({
+					mantraKey: selectedKey
+				});
+			}
+
 			isUpdatingPitches = false;
 		}
 	};
@@ -177,8 +180,8 @@
 					Adjust the key to find comfortable tones for your voice.
 				</p>
 				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-					Higher keys (G, A) are typically better for higher voices, while lower keys (D, E) work well
-					for lower voices.
+					Higher keys (G, A) are typically better for higher voices, while lower keys (D, E) work
+					well for lower voices.
 				</p>
 			</div>
 		</div>
