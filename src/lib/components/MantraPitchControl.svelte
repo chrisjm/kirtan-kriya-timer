@@ -139,9 +139,9 @@
 		const expectedPitches = generatePitches(selectedKey);
 		if (JSON.stringify(expectedPitches) !== JSON.stringify($soundStore.mantraPitches)) {
 			// Pitches changed externally, update our UI
-			const firstNote = $soundStore.mantraPitches[0];
-			if (firstNote) {
-				const keyPart = extractKey(firstNote);
+			const keyNote = $soundStore.mantraPitches[1];
+			if (keyNote) {
+				const keyPart = extractKey(keyNote);
 
 				// Only update if the key exists in our options
 				if (musicalKeys.some((k) => k.id === keyPart) && keyPart !== selectedKey) {
