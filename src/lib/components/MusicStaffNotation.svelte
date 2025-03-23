@@ -126,17 +126,6 @@
 			/>
 		{/each}
 
-		<!-- Treble Clef from SVG file in static directory -->
-		<!-- Commenting out for now, but keep for later -->
-		<!-- <image
-			href="/Treble_clef.svg"
-			x="10"
-			y="35"
-			width="50"
-			height="100"
-			preserveAspectRatio="xMidYMid meet"
-		/> -->
-
 		<!-- Notes -->
 		{#each notePositions as pos}
 			<!-- Ledger lines if needed -->
