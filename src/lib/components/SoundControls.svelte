@@ -10,7 +10,7 @@
 	let isInitialized = false;
 
 	onMount(() => {
-		const unsubscribe = navigationStore.subscribe(state => {
+		const unsubscribe = navigationStore.subscribe((state) => {
 			if (state.audioWasInitialized && !isInitialized && browser) {
 				console.log('Restoring audio initialization state');
 				initializeAudio();

@@ -6,7 +6,7 @@
 	{#each $timerStore.phases as phase, index (phase.id)}
 		<!-- Using phase.id as the key ensures stable rendering when phases update -->
 		<button
-			class="inline-flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors
+			class="phase-button inline-flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors
 					{index === $timerStore.currentPhaseIndex
 				? 'bg-primary text-white hover:bg-emerald-600'
 				: phase.completed
@@ -14,6 +14,7 @@
 				: 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}"
 			on:click={() => timerStore.selectPhase(index)}
 			title={phase.completed ? 'Phase completed' : `Switch to phase ${index + 1}`}
+			aria-label={`Select phase ${index + 1}: ${phase.action}`}
 		>
 			<!-- Include completion indicator -->
 			{#if phase.completed}

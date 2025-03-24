@@ -37,7 +37,11 @@
 		<!-- Timer status indicator -->
 
 		<!-- Time remaining display -->
-		<div class="font-mono text-5xl tabular-nums tracking-wider">
+		<div
+			class="font-mono text-5xl tabular-nums tracking-wider"
+			data-testid="timer-display"
+			aria-label="Timer display"
+		>
 			{padWithZeroes(
 				secondsToMinutes(millisecondsToSeconds($timerStore.timeRemaining))
 			)}:{padWithZeroes(millisecondsToSeconds($timerStore.timeRemaining) % 60)}

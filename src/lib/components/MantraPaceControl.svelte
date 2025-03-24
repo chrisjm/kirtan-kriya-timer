@@ -11,7 +11,7 @@
 	};
 </script>
 
-<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg" data-testid="mantra-pace-control">
 	<h3 class="text-lg font-medium mb-2">Mantra Pace</h3>
 	<div class="flex flex-col gap-2 w-full">
 		<div class="flex items-center justify-between">
@@ -20,7 +20,7 @@
 				<span>Tempo (BPM)</span>
 			</label>
 			<div class="flex flex-col items-end">
-				<span class="text-xs text-gray-500">
+				<span class="text-xs text-gray-500" data-testid="mantra-pace-value">
 					{$soundStore.mantraPace} BPM
 				</span>
 			</div>
@@ -37,6 +37,7 @@
 			class="range"
 			tabindex="0"
 			aria-label="Adjust mantra tempo in beats per minute"
+			data-testid="mantra-pace-slider"
 		/>
 
 		<div class="flex justify-between text-xs text-gray-500">

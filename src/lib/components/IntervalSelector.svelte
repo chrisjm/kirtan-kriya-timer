@@ -14,7 +14,7 @@
 	};
 </script>
 
-<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg" data-testid="interval-selector">
 	<h3 class="text-lg font-medium mb-2">Meditation Duration</h3>
 	<div class="flex flex-col gap-2">
 		<p class="text-sm text-gray-600 dark:text-gray-400">
@@ -30,6 +30,7 @@
 				value={currentMultiplier}
 				on:change={handleIntervalChange}
 				aria-label="Select interval multiplier"
+				data-testid="interval-multiplier-select"
 			>
 				{#each intervalOptions as option}
 					<option value={option.value}>{option.label} (total: {12 * option.value} min)</option>

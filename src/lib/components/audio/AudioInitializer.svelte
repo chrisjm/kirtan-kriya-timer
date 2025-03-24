@@ -126,7 +126,7 @@
 		try {
 			// Ensure storage is initialized before enabling audio
 			initializeStorage();
-			
+
 			// First, try to resume the audio context
 			await Tone.start();
 
@@ -157,17 +157,17 @@
 	});
 </script>
 
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-2" data-testid="audio-initializer">
 	<!-- Audio status and control -->
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-2">
 			{#if isInitialized}
-				<span class="text-green-600 flex items-center gap-1">
+				<span class="text-green-600 flex items-center gap-1" data-testid="audio-status-enabled">
 					<CheckCircle class="h-5 w-5" />
 					<span class="font-medium">Audio Enabled</span>
 				</span>
 			{:else}
-				<span class="text-amber-500 flex items-center gap-1">
+				<span class="text-amber-500 flex items-center gap-1" data-testid="audio-status-disabled">
 					<AlertTriangle class="h-5 w-5" />
 					<span class="font-medium">Audio Disabled</span>
 				</span>
@@ -183,6 +183,7 @@
 				on:click={initializeAudio}
 				disabled={isLoading}
 				aria-label="Enable audio"
+				data-testid="enable-audio-button"
 				tabindex="0"
 				on:keydown={(e) => e.key === 'Enter' && initializeAudio()}
 			>
@@ -193,18 +194,19 @@
 
 	<!-- Wake lock indicator -->
 	{#if isInitialized && wakeLockState.wakeLockSupported}
-		<div class="flex items-center gap-2 text-xs">
+		<div class="flex items-center gap-2 text-xs" data-testid="wake-lock-container">
 			<div
 				class="w-2 h-2 rounded-full {isInitialized
 					? wakeLockState.wakeLockActive
 						? 'bg-green-500'
 						: 'bg-amber-500'
 					: 'bg-gray-300'}"
+				data-testid={wakeLockState.wakeLockActive ? 'wake-lock-active' : 'wake-lock-ready'}
 			/>
 			{#if wakeLockState.wakeLockActive}
-				<span>Screen Wake Lock Active</span>
+				<span data-testid="wake-lock-status">Screen Wake Lock Active</span>
 			{:else}
-				<span>Screen Wake Lock Ready</span>
+				<span data-testid="wake-lock-status">Screen Wake Lock Ready</span>
 			{/if}
 		</div>
 	{/if}

@@ -7,10 +7,7 @@ import mdsvexConfig from './mdsvex.config.js';
 const config = {
 	// Consult https://kit.svelte.dev/docs/integrations#preprocessors
 	// for more information about preprocessors
-	preprocess: [
-		vitePreprocess(),
-		mdsvex(mdsvexConfig)
-	],
+	preprocess: [vitePreprocess(), mdsvex(mdsvexConfig)],
 
 	extensions: ['.svelte', '.md', '.svx'],
 

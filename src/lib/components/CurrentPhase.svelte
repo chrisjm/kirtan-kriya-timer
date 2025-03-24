@@ -24,11 +24,14 @@
 	$: isAudioInitialized = $soundStore.isInitialized;
 </script>
 
-<div class="rounded-lg bg-gray-50 dark:bg-gray-800 p-4 my-4 shadow-sm">
+<div
+	class="rounded-lg bg-gray-50 dark:bg-gray-800 p-4 my-4 shadow-sm"
+	data-testid="current-phase-container"
+>
 	<div class="flex flex-col md:flex-row md:items-start">
 		<!-- Phase Information -->
 		<div class="w-full md:w-1/2 text-center md:text-left mb-3 md:mb-0 flex-shrink-0">
-			<h3 class="text-xl font-bold">
+			<h3 class="text-xl font-bold" data-testid="phase-title">
 				Phase {currentPhaseIndex + 1}: {actionLabel}
 			</h3>
 
@@ -36,7 +39,7 @@
 				<div class="mt-2" transition:fade={{ duration: 200 }}>
 					<span
 						class="inline-flex items-center px-2.5 py-0.5 rounded-full text-base font-medium bg-primary text-white"
-						>{currentMantra.mantra}</span
+						data-testid="current-mantra">{currentMantra.mantra}</span
 					>
 				</div>
 			{/if}
