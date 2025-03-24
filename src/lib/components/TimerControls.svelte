@@ -30,6 +30,10 @@
 			on:click={pauseTimer}
 			disabled={!isRunning}
 			title="Pause the meditation timer"
+			aria-label="Pause"
+			data-testid="pause-button"
+			tabindex="0"
+			on:keydown={(e) => e.key === 'Enter' && pauseTimer()}
 		>
 			<Pause class="h-5 w-5 mr-1" />
 			PAUSE
@@ -40,9 +44,13 @@
 			on:click={startTimer}
 			disabled={isRunning}
 			title="Start the meditation timer"
+			aria-label={$timerStore.status === TimerStatus.PAUSED ? 'Resume' : 'Start'}
+			data-testid={$timerStore.status === TimerStatus.PAUSED ? 'resume-button' : 'start-button'}
+			tabindex="0"
+			on:keydown={(e) => e.key === 'Enter' && startTimer()}
 		>
 			<Play class="h-5 w-5 mr-1" />
-			START
+			{$timerStore.status === TimerStatus.PAUSED ? 'RESUME' : 'START'}
 		</button>
 	{/if}
 	<button
@@ -50,6 +58,10 @@
 		on:click={resetTimer}
 		disabled={isResetDisabled}
 		title="Reset the meditation timer"
+		aria-label="Reset"
+		data-testid="reset-button"
+		tabindex="0"
+		on:keydown={(e) => e.key === 'Enter' && resetTimer()}
 	>
 		<RotateCcw class="h-5 w-5 mr-1" />
 		RESET

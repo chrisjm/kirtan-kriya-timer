@@ -8,8 +8,12 @@
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 
-	injectAnalytics({ mode: dev ? 'development' : 'production' });
-	injectSpeedInsights();
+	// Only inject analytics and speed insights in production and not during testing
+	const isTestEnvironment = process.env.TEST;
+	if (!isTestEnvironment) {
+		injectAnalytics({ mode: dev ? 'development' : 'production' });
+		injectSpeedInsights();
+	}
 </script>
 
 <svelte:head>

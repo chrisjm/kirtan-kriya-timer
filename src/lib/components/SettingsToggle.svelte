@@ -7,6 +7,7 @@
 	class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 	on:click={toggleSettingsSidebar}
 	aria-label="Toggle settings sidebar"
+	data-testid="settings-toggle"
 	tabindex="0"
 	on:keydown={(e) => e.key === 'Enter' && toggleSettingsSidebar()}
 >

@@ -17,7 +17,7 @@ const STORAGE_KEY = 'kirtan-kriya-settings';
 const defaultState: StorageState = {
   currentPhaseIndex: 0,
   soundVolume: 70,
-  isMuted: true,
+  isMuted: false,
   mantraPace: 68,
   mantraPitches: ['A3', 'G3', 'F3', 'G3'],
   mantraKey: 'G',

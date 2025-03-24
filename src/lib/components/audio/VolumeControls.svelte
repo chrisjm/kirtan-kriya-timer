@@ -47,7 +47,7 @@
 					soundStore.setVolume(parseInt(e.target.value));
 				}
 			}}
-			aria-label="Volume control"
+			aria-label="Adjust volume level"
 		/>
 	</div>
 </div>
