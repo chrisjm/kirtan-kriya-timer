@@ -14,7 +14,8 @@
 		"format": "prettier --plugin-search-dir . --write .",
 		"test:integration": "playwright test",
 		"test:unit": "vitest",
-		"test:coverage": "tsx tests/run-tests-with-coverage.ts"
+		"test:coverage": "tsx tests/run-tests-with-coverage.ts",
+		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.28.1",
@@ -26,6 +27,8 @@
 		"eslint": "^8.28.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-plugin-svelte": "^2.30.0",
+		"husky": "^9.1.7",
+		"lint-staged": "^15.5.0",
 		"postcss": "^8.4.26",
 		"prettier": "^2.8.0",
 		"prettier-plugin-svelte": "^2.10.1",
