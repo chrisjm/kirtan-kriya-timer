@@ -14,7 +14,7 @@ const phasePattern = [
  * @param multiplier - Time multiplier (0.25, 0.5, 0.75, or 1)
  * @returns Array of TimerPhase objects with calculated duration
  */
-export const generatePhases = (multiplier: number = 1): TimerPhase[] => {
+export const generatePhases = (multiplier: number): TimerPhase[] => {
 	return phasePattern.map((phase) => ({
 		id: phase.id,
 		action: phase.action,
