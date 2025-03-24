@@ -2,15 +2,15 @@
 	// Props: Array of note names (e.g. ["E3", "D3", "C3", "D3"])
 	export let notes: string[] = [];
 	// Optional prop for width (default: 100% of container)
-	export let width: string = '100%';
+	export let width = '100%';
 	// Optional prop for height (default: 120px)
-	export let height: string = '120px';
+	export let height = '120px';
 	// Optional prop for staff color
-	export let staffColor: string = 'currentColor';
+	export let staffColor = 'currentColor';
 	// Optional prop for note color
-	export let noteColor: string = 'currentColor';
+	export let noteColor = 'currentColor';
 	// Optional prop for labels (Saa, Taa, Naa, Maa)
-	export let showLabels: boolean = true;
+	export let showLabels = true;
 	// Optional prop for syllables
 	export let syllables: string[] = ['Saa', 'Taa', 'Naa', 'Maa'];
 
