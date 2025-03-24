@@ -21,7 +21,7 @@
 		const state: Record<string, boolean> = {};
 
 		// Initialize all sections as collapsed
-		sections.forEach(section => {
+		sections.forEach((section) => {
 			state[section] = false;
 		});
 

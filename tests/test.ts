@@ -1,5 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { waitForAppLoad, getTimerValue, startTimer, pauseTimer, resetTimer, selectPhase, enableAudio, setVolume, setMantraPace } from './helpers';
+import {
+	waitForAppLoad,
+	getTimerValue,
+	startTimer,
+	pauseTimer,
+	resetTimer,
+	selectPhase,
+	enableAudio,
+	setVolume,
+	setMantraPace
+} from './helpers';
 
 /**
  * Timer Functionality Tests
@@ -105,7 +115,7 @@ test.describe('Timer Functionality', () => {
 	test('manual phase selection changes current phase', async ({ page }) => {
 		// Wait for app to load
 		await waitForAppLoad(page);
-		
+
 		// Get initial phase info using data-testid
 		const phaseTitle = page.locator('[data-testid="phase-title"]');
 		await expect(phaseTitle).toBeVisible({ timeout: 10000 });
@@ -116,7 +126,7 @@ test.describe('Timer Functionality', () => {
 		const selectSuccess = await selectPhase(page, 1);
 		expect(selectSuccess).toBeTruthy();
 		console.log('Selected phase 2');
-		
+
 		// Wait for the phase to update
 		await page.waitForTimeout(1000);
 
@@ -165,11 +175,11 @@ test.describe('Audio Functionality', () => {
 	test('mantra pace control changes BPM', async ({ page }) => {
 		// Wait for app to load
 		await waitForAppLoad(page);
-		
+
 		// Enable audio first (required for mantra pace to work)
 		const audioEnabled = await enableAudio(page);
 		expect(audioEnabled).toBeTruthy();
-		
+
 		// Open settings if needed to access the mantra pace control
 		const settingsButton = page.locator('[data-testid="settings-button"]');
 		if (await settingsButton.isVisible()) {
@@ -179,7 +189,7 @@ test.describe('Audio Functionality', () => {
 		// Find the mantra pace value using data-testid
 		const mantraPaceValue = page.locator('[data-testid="mantra-pace-value"]');
 		await expect(mantraPaceValue).toBeVisible({ timeout: 10000 });
-		
+
 		// Get current BPM value
 		const initialBpm = await mantraPaceValue.textContent();
 		console.log('Initial BPM value:', initialBpm);
@@ -188,7 +198,7 @@ test.describe('Audio Functionality', () => {
 		const success = await setMantraPace(page, 80);
 		expect(success).toBeTruthy();
 		console.log('Set mantra pace to 80 BPM');
-		
+
 		// Wait for the UI to update
 		await page.waitForTimeout(1000);
 

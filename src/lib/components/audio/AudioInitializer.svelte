@@ -126,7 +126,7 @@
 		try {
 			// Ensure storage is initialized before enabling audio
 			initializeStorage();
-			
+
 			// First, try to resume the audio context
 			await Tone.start();
 
